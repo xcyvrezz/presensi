@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Card Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #2196F3;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+        .sample-cards {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .sample-cards h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        .card-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .card-item:hover {
+            background: #e9ecef;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔖 RFID Card Simulator</h1>
+
+        <div class="info">
+            <strong>ℹ️ Info:</strong> Tool ini digunakan untuk men-simulate tapping kartu RFID ke reader.
+            Card UID akan dikirim ke cache dan dibaca oleh tapping station.
+        </div>
+
+        <div class="form-group">
+            <label for="cardUid">Card UID:</label>
+            <input type="text" id="cardUid" placeholder="Masukkan Card UID (contoh: 04:AB:CD:EF:12:34:80)"
+                   value="04:AB:CD:EF:12:34:80">
+        </div>
+
+        <div>
+            <button onclick="tapCard()">📱 Tap Card</button>
+            <button onclick="clearCard()" class="secondary">🗑️ Clear Card</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="sample-cards">
+            <h3>Sample Card UIDs (Click to use):</h3>
+            <div id="sampleCards">
+                <em>Loading...</em>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get base URL
+        const baseUrl = window.location.origin + window.location.pathname.replace('/rfid-simulator.html', '');
+
+        // Tap card function
+        async function tapCard() {
+            const cardUid = document.getElementById('cardUid').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!cardUid) {
+                showStatus('error', 'Card UID tidak boleh kosong!');
+                return;
+            }
+
+            try {
+                showStatus('info', 'Mengirim card UID...');
+
+                const response = await fetch(baseUrl + '/api/rfid/report-card', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        card_uid: cardUid
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('success', `✅ Card berhasil di-tap! UID: ${data.card_uid}\n\nSekarang buka Tapping Station untuk melihat hasilnya.`);
+                } else {
+                    showStatus('error', '❌ Gagal tap card: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                showStatus('error', '❌ Error: ' + error.message);
+                console.error('Error:', error);
+            }
+        }
+
+        // Clear card cache
+        async function clearCard() {
+            const statusDiv = document.getElementById('status');
+
+            try {
+                const response = await fetch(baseUrl + '/api/rfid/clear-card', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('success', '✅ Card cache berhasil di-clear!');
+                } else {
+                    showStatus('error', '❌ Gagal clear cache');
+                }
+            } catch (error) {
+                showStatus('error', '❌ Error: ' + error.message);
+            }
+        }
+
+        // Show status message
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + type;
+            statusDiv.innerHTML = message.replace(/\n/g, '<br>');
+            statusDiv.style.display = 'block';
+        }
+
+        // Use sample card
+        function useSampleCard(uid) {
+            document.getElementById('cardUid').value = uid;
+            showStatus('success', 'Card UID dipilih: ' + uid + '\nKlik "Tap Card" untuk simulate tap.');
+        }
+
+        // Load sample cards from database
+        async function loadSampleCards() {
+            try {
+                // We'll just show format examples since we can't easily query DB from here
+                const sampleCardsDiv = document.getElementById('sampleCards');
+                sampleCardsDiv.innerHTML = `
+                    <div class="card-item" onclick="useSampleCard('04:AB:CD:EF:12:34:80')">
+                        <code>04:AB:CD:EF:12:34:80</code> - Sample Card 1
+                    </div>
+                    <div class="card-item" onclick="useSampleCard('04:12:34:56:78:90:AB')">
+                        <code>04:12:34:56:78:90:AB</code> - Sample Card 2
+                    </div>
+                    <div class="card-item" onclick="useSampleCard('AA:BB:CC:DD:EE:FF:00')">
+                        <code>AA:BB:CC:DD:EE:FF:00</code> - Sample Card 3
+                    </div>
+                    <p><small>💡 Tip: Gunakan card_uid dari database siswa yang aktif untuk test nyata.</small></p>
+                `;
+            } catch (error) {
+                console.error('Error loading sample cards:', error);
+            }
+        }
+
+        // Load on page ready
+        loadSampleCards();
+
+        // Allow Enter key to tap
+        document.getElementById('cardUid').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                tapCard();
+            }
+        });
+    </script>
+</body>
+</html>

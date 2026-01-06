@@ -1,0 +1,273 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\AttendanceSetting;
+use Illuminate\Database\Seeder;
+
+class AttendanceSettingSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $settings = [
+            // Time Windows
+            [
+                'key' => 'check_in_start',
+                'group' => 'time_windows',
+                'label' => 'Waktu Mulai Check-in',
+                'description' => 'Waktu paling awal siswa dapat melakukan check-in',
+                'value_type' => 'time',
+                'value' => '05:00:00',
+                'default_value' => '05:00:00',
+                'validation_rules' => json_encode(['required', 'date_format:H:i:s']),
+                'is_editable' => true,
+                'display_order' => 1,
+            ],
+            [
+                'key' => 'check_in_end',
+                'group' => 'time_windows',
+                'label' => 'Waktu Akhir Check-in',
+                'description' => 'Batas waktu check-in tanpa dianggap terlambat',
+                'value_type' => 'time',
+                'value' => '07:00:00',
+                'default_value' => '07:00:00',
+                'validation_rules' => json_encode(['required', 'date_format:H:i:s']),
+                'is_editable' => true,
+                'display_order' => 2,
+            ],
+            [
+                'key' => 'late_threshold',
+                'group' => 'time_windows',
+                'label' => 'Batas Waktu Terlambat',
+                'description' => 'Check-in setelah waktu ini dianggap terlambat',
+                'value_type' => 'time',
+                'value' => '07:15:00',
+                'default_value' => '07:15:00',
+                'validation_rules' => json_encode(['required', 'date_format:H:i:s']),
+                'is_editable' => true,
+                'display_order' => 3,
+            ],
+            [
+                'key' => 'check_out_start',
+                'group' => 'time_windows',
+                'label' => 'Waktu Mulai Check-out',
+                'description' => 'Waktu paling awal untuk check-out normal',
+                'value_type' => 'time',
+                'value' => '14:00:00',
+                'default_value' => '14:00:00',
+                'validation_rules' => json_encode(['required', 'date_format:H:i:s']),
+                'is_editable' => true,
+                'display_order' => 4,
+            ],
+            [
+                'key' => 'check_out_end',
+                'group' => 'time_windows',
+                'label' => 'Waktu Akhir Check-out',
+                'description' => 'Batas waktu normal check-out',
+                'value_type' => 'time',
+                'value' => '15:00:00',
+                'default_value' => '15:00:00',
+                'validation_rules' => json_encode(['required', 'date_format:H:i:s']),
+                'is_editable' => true,
+                'display_order' => 5,
+            ],
+
+            // Geofencing
+            [
+                'key' => 'geofencing_enabled',
+                'group' => 'geofencing',
+                'label' => 'Aktifkan Geofencing',
+                'description' => 'Validasi lokasi GPS saat check-in/out mobile',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'validation_rules' => json_encode(['required', 'boolean']),
+                'is_editable' => true,
+                'display_order' => 10,
+            ],
+            [
+                'key' => 'geofencing_radius',
+                'group' => 'geofencing',
+                'label' => 'Radius Geofencing (meter)',
+                'description' => 'Jarak maksimal dari lokasi sekolah',
+                'value_type' => 'integer',
+                'value' => '15',
+                'default_value' => '15',
+                'validation_rules' => json_encode(['required', 'integer', 'min:5', 'max:100']),
+                'is_editable' => true,
+                'display_order' => 11,
+            ],
+            [
+                'key' => 'gps_accuracy_threshold',
+                'group' => 'geofencing',
+                'label' => 'Akurasi GPS Minimum (meter)',
+                'description' => 'GPS accuracy harus lebih baik dari nilai ini',
+                'value_type' => 'integer',
+                'value' => '50',
+                'default_value' => '50',
+                'validation_rules' => json_encode(['required', 'integer', 'min:10', 'max:200']),
+                'is_editable' => true,
+                'display_order' => 12,
+            ],
+
+            // Violations & Auto-detection
+            [
+                'key' => 'alpha_detection_time',
+                'group' => 'violations',
+                'label' => 'Waktu Deteksi Alpha',
+                'description' => 'Waktu sistem mendeteksi siswa alpha (tidak hadir)',
+                'value_type' => 'time',
+                'value' => '23:55:00',
+                'default_value' => '23:55:00',
+                'validation_rules' => json_encode(['required', 'date_format:H:i:s']),
+                'is_editable' => true,
+                'display_order' => 20,
+            ],
+            [
+                'key' => 'bolos_detection_times',
+                'group' => 'violations',
+                'label' => 'Waktu Deteksi Bolos',
+                'description' => 'Waktu-waktu sistem cek bolos (JSON array)',
+                'value_type' => 'json',
+                'value' => json_encode(['18:30:00', '20:00:00']),
+                'default_value' => json_encode(['18:30:00', '20:00:00']),
+                'validation_rules' => json_encode(['required', 'json']),
+                'is_editable' => true,
+                'display_order' => 21,
+            ],
+            [
+                'key' => 'late_tolerance_minutes',
+                'group' => 'violations',
+                'label' => 'Toleransi Keterlambatan (menit)',
+                'description' => 'Toleransi menit untuk keterlambatan tanpa sanksi',
+                'value_type' => 'integer',
+                'value' => '5',
+                'default_value' => '5',
+                'validation_rules' => json_encode(['required', 'integer', 'min:0', 'max:30']),
+                'is_editable' => true,
+                'display_order' => 22,
+            ],
+            [
+                'key' => 'violation_points_alpha',
+                'group' => 'violations',
+                'label' => 'Poin Pelanggaran Alpha',
+                'description' => 'Poin untuk pelanggaran alpha',
+                'value_type' => 'integer',
+                'value' => '10',
+                'default_value' => '10',
+                'validation_rules' => json_encode(['required', 'integer', 'min:0']),
+                'is_editable' => true,
+                'display_order' => 23,
+            ],
+            [
+                'key' => 'violation_points_late',
+                'group' => 'violations',
+                'label' => 'Poin Pelanggaran Terlambat',
+                'description' => 'Poin untuk keterlambatan',
+                'value_type' => 'integer',
+                'value' => '5',
+                'default_value' => '5',
+                'validation_rules' => json_encode(['required', 'integer', 'min:0']),
+                'is_editable' => true,
+                'display_order' => 24,
+            ],
+            [
+                'key' => 'violation_points_bolos',
+                'group' => 'violations',
+                'label' => 'Poin Pelanggaran Bolos',
+                'description' => 'Poin untuk bolos/pulang cepat tanpa izin',
+                'value_type' => 'integer',
+                'value' => '15',
+                'default_value' => '15',
+                'validation_rules' => json_encode(['required', 'integer', 'min:0']),
+                'is_editable' => true,
+                'display_order' => 25,
+            ],
+
+            // Manual Attendance
+            [
+                'key' => 'manual_grace_period_hours',
+                'group' => 'manual_attendance',
+                'label' => 'Grace Period Input Manual (jam)',
+                'description' => 'Wali kelas bisa input manual H-1 sampai jam berapa hari ini (contoh: 12 = sampai jam 12 siang)',
+                'value_type' => 'integer',
+                'value' => '12',
+                'default_value' => '12',
+                'validation_rules' => json_encode(['required', 'integer', 'min:0', 'max:23']),
+                'is_editable' => true,
+                'display_order' => 30,
+            ],
+            [
+                'key' => 'manual_requires_evidence',
+                'group' => 'manual_attendance',
+                'label' => 'Wajib Upload Bukti',
+                'description' => 'Izin/sakit/dispensasi wajib upload file bukti',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'validation_rules' => json_encode(['required', 'boolean']),
+                'is_editable' => true,
+                'display_order' => 31,
+            ],
+            [
+                'key' => 'manual_auto_approve',
+                'group' => 'manual_attendance',
+                'label' => 'Auto-approve Manual Attendance',
+                'description' => 'Input manual langsung approved tanpa perlu approval',
+                'value_type' => 'boolean',
+                'value' => 'false',
+                'default_value' => 'false',
+                'validation_rules' => json_encode(['required', 'boolean']),
+                'is_editable' => true,
+                'display_order' => 32,
+            ],
+
+            // Notifications
+            [
+                'key' => 'notification_late_enabled',
+                'group' => 'notifications',
+                'label' => 'Notifikasi Terlambat',
+                'description' => 'Kirim notifikasi saat siswa terlambat',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'validation_rules' => json_encode(['required', 'boolean']),
+                'is_editable' => true,
+                'display_order' => 40,
+            ],
+            [
+                'key' => 'notification_alpha_enabled',
+                'group' => 'notifications',
+                'label' => 'Notifikasi Alpha',
+                'description' => 'Kirim notifikasi saat siswa alpha',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'validation_rules' => json_encode(['required', 'boolean']),
+                'is_editable' => true,
+                'display_order' => 41,
+            ],
+            [
+                'key' => 'notification_approval_enabled',
+                'group' => 'notifications',
+                'label' => 'Notifikasi Approval',
+                'description' => 'Kirim notifikasi untuk approval request',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'validation_rules' => json_encode(['required', 'boolean']),
+                'is_editable' => true,
+                'display_order' => 42,
+            ],
+        ];
+
+        foreach ($settings as $setting) {
+            AttendanceSetting::create($setting);
+        }
+
+        $this->command->info('✓ ' . count($settings) . ' attendance settings created successfully');
+    }
+}

@@ -13,12 +13,24 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
+            $table->foreignId('role_id')->constrained('roles')->comment('FK ke roles table');
+            $table->string('name', 100)->comment('Nama lengkap user');
+            $table->string('email')->unique()->comment('Email untuk login');
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->comment('Hashed password');
+            $table->string('phone', 20)->nullable()->comment('Nomor telepon/WhatsApp');
+            $table->string('photo')->nullable()->comment('Path foto profil');
+            $table->boolean('is_active')->default(true)->comment('Status aktif/nonaktif');
+            $table->timestamp('last_login_at')->nullable()->comment('Terakhir login');
+            $table->string('last_login_ip', 45)->nullable()->comment('IP terakhir login');
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
+
+            // Indexes
+            $table->index('role_id');
+            $table->index('email');
+            $table->index('is_active');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

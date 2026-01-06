@@ -1,0 +1,2878 @@
+
+╭─── Claude Code v2.0.69 ──────────────────────────────────────────────────────╮
+│                                    │ Tips for getting started                │
+│            Welcome back!           │ Run /init to create a CLAUDE.md file w… │
+│                                    │ ─────────────────────────────────────── │
+│             * ▐▛███▜▌ *            │ Recent activity                         │
+│            * ▝▜█████▛▘ *           │ No recent activity                      │
+│             *  ▘▘ ▝▝  *            │                                         │
+│                                    │                                         │
+│   Sonnet 4.5 · API Usage Billing   │                                         │
+│   D:\xampp\htdocs\absensi-mifare   │                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+  /model to try Opus 4.5
+══════════════════ Conversation compacted · ctrl+o for history ═════════════════
+
+● Let me verify that the fixes have been properly applied to the files and then provide you with clear testing instructions.
+
+● Read(resources\views\layouts\tapping.blade.php)
+  ⎿  Read 13 lines
+
+● Read(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Read 20 lines
+
+● Perfect! Both fixes are confirmed in the files. Now let's test if the tapping station works. Here's what you need to do:
+
+  Step 1: Hard Refresh Browser
+
+  Open the tapping station page and do a hard refresh to clear the cached JavaScript:
+  - Press Ctrl + Shift + R (or Ctrl + F5)
+  - Or right-click reload button and select "Empty Cache and Hard Reload"
+
+  Step 2: Check Console for Debug Messages
+
+  Press F12 to open Developer Tools, then click the "Console" tab. You should see:
+
+  ✅ tappingStation() function loaded
+  🔄 Tapping Station Initialized
+  📡 Polling URL: http://localhost/absensi-mifare/public/api/rfid/last-card
+  ✅ Polling started (every 300ms)
+
+  If you see these messages, the JavaScript is now loading correctly!
+
+  Step 3: Get a Real Card UID
+
+  Open this URL in a new tab to get real student card UIDs from your database:
+
+  http://localhost/absensi-mifare/public/get-cards.php
+
+  Copy one of the card UIDs shown (they look like 04:AB:CD:EF:12:34:80).
+
+  Step 4: Test Card Tapping
+
+  1. Open the RFID Simulator in another tab:
+  http://localhost/absensi-mifare/public/rfid-simulator.html
+  2. Paste the card UID you copied into the simulator
+  3. Click "📱 Tap Card"
+  4. Watch the tapping station console (the one you have open with F12)
+
+  You should see:
+  🎴 Card detected: 04:AB:CD:EF:12:34:80
+  📤 Processing card via Livewire...
+  🧹 Last card UID cleared
+
+  And the tapping station display should update showing the student's information!
+
+  ---
+  Let me know what you see in the console after the hard refresh. If you still don't see the initialization messages, there might be another issue we need to debug.
+
+> ✅ tappingStation() function loaded
+app-MGR6wgs8.js:6 ℹ️ NFC Web API tidak tersedia (Desktop) - Gunakan USB RFID
+ Reader
+app-MGR6wgs8.js:6 ✅ Geolocation API tersedia
+public/:165 🔄 Tapping Station Initialized
+public/:166 📡 Polling URL: 
+http://localhost/absensi-mifare/public/api/rfid/last-card
+public/:183 ✅ Polling started (every 300ms)
+public/:165 🔄 Tapping Station Initialized
+public/:166 📡 Polling URL: 
+http://localhost/absensi-mifare/public/api/rfid/last-card
+public/:183 ✅ Polling started (every 300ms) ketika saya tempelkan kartu ke 
+mifare atau nfc reader tidak terjadi apapun 
+
+● Bagus! Console menunjukkan polling sudah berjalan dengan benar. Sekarang kita perlu cek apakah:
+
+  1. Polling benar-benar mengirim request ke API
+  2. RFID reader Anda sudah terkoneksi dan mengirim data
+
+  Langkah 1: Cek Network Tab
+
+  Di Developer Tools (F12), klik tab "Network" (di samping Console).
+
+  Anda akan melihat banyak request ke last-card setiap 300ms. Klik salah satu request tersebut, lalu lihat Response-nya.
+
+  Response yang normal adalah:
+  {
+    "success": false,
+    "card_uid": null,
+    "message": "No card detected"
+  }
+
+  Screenshot atau copy-paste response yang Anda lihat.
+
+  ---
+  Langkah 2: Test Dulu Pakai Simulator
+
+  Sebelum test dengan RFID reader fisik, mari kita test dulu bahwa sistem berfungsi dengan simulator:
+
+  1. Buka: http://localhost/absensi-mifare/public/get-cards.php
+    - Copy salah satu Card UID yang muncul
+  2. Buka di tab baru: http://localhost/absensi-mifare/public/rfid-simulator.html
+    - Paste Card UID tersebut
+    - Klik "📱 Tap Card"
+  3. Kembali ke tab Tapping Station
+
+  Apakah muncul data siswa? Kalau muncul, berarti sistem sudah OK, tinggal koneksi RFID reader-nya.
+
+  ---
+  Langkah 3: Integrasi RFID Reader Fisik
+
+  Pertanyaan penting: Jenis RFID reader Anda apa dan bagaimana cara kerjanya?
+
+  Ada beberapa kemungkinan:
+
+  A. USB HID Mode (Keyboard Emulation)
+
+  Reader bertindak seperti keyboard, ketika scan kartu akan "mengetik" UID.
+
+  Cara integrasinya:
+  - Anda perlu membuat form input tersembunyi di halaman tapping station
+  - Ketika reader scan, UID akan masuk ke input
+  - JavaScript detect perubahan dan kirim ke Livewire
+
+  B. Serial/USB dengan Software
+
+  Reader kirim data via serial port, butuh software khusus untuk bridge ke web.
+
+  Cara integrasinya:
+  - Buat aplikasi desktop kecil (Python/Node.js) yang:
+    - Baca data dari serial port
+    - POST ke API endpoint /api/rfid/report-card
+
+  C. Network RFID Reader
+
+  Reader sudah bisa kirim HTTP request sendiri.
+
+  Cara integrasinya:
+  - Konfigurasi reader untuk POST ke: http://localhost/absensi-mifare/public/api/rfid/report-card
+
+  ---
+  Tolong info:
+  1. Response dari Network tab (step 1)
+  2. Apakah simulator berfungsi (step 2)
+  3. Jenis/merk RFID reader yang Anda pakai
+
+  Dengan info ini saya bisa bantu integrasikan reader fisik ke sistem.
+
+> dari network tab tidak ada apa apa.pada saat di halaman data absensi admin
+ berhasil namun disini tidak 
+
+● Ah! Ini sangat penting - tidak ada network request sama sekali berarti polling-nya tidak jalan, meskipun console bilang "started".
+
+  Mari kita tambahkan debug yang lebih detail untuk melihat kenapa fetch tidak jalan:
+
+● Read(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Read 30 lines
+  ⎿  Interrupted · What should Claude do instead?
+
+> ya ini usb mifare reader, namun buat juga agar bisa menggunakan nfc hp 
+
+● Baik! Saya akan tambahkan support untuk kedua mode:
+  1. USB MIFARE Reader (keyboard emulation mode)
+  2. NFC HP (Web NFC API)
+
+  Plus perbaiki polling yang tidak jalan. Mari saya update tapping station:
+
+● Update(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Updated resources\views\livewire\public\tapping-station.blade.php with
+     116 additions and 14 removals
+
+       209            pollingInterval: null,
+       210            lastCardUid: null,
+       211            apiUrl: '{{ url('/api/rfid/last-card') }}',
+       212 +          cardBuffer: '',
+       213 +          nfcSupported: false,
+       214 +          nfcReader: null,
+       215    
+       216            init() {
+       217                console.log('🔄 Tapping Station Initialized');
+     ...
+       219                    this.updateClock();
+       220                }, 1000);
+       221    
+       222 -              // Poll for RFID cards every 300ms
+       223 -              this.pollingInterval = setInterval(() => {
+       224 -                  this.pollForCard();
+       225 -              }, 300);
+       222 +              // Poll for RFID cards every 
+           +  500ms (diperlambat sedikit untuk stabilitas)
+       223 +              this.startPolling();
+       224    
+       225 +              // Setup USB Reader (Keyboard Emulation Mode)
+       226 +              this.setupUSBReader();
+       227 +  
+       228 +              // Setup NFC HP (Web NFC API)
+       229 +              this.setupNFC();
+       230 +  
+       231                // Update time in Livewire every minute
+       232                setInterval(() => {
+       233                    @this.call('updateTime');
+       234                }, 60000);
+       235    
+       236 -              console.log('✅ Polling started (every 
+           - 300ms)');
+       236 +              console.log('✅ All input modes initialized');
+       237            },
+       238    
+       239 +          startPolling() {
+       240 +              console.log('🔄 Starting polling...');
+       241 +              let pollCount = 0;
+       242 +  
+       243 +              this.pollingInterval = setInterval(() => {
+       244 +                  pollCount++;
+       245 +                  if (pollCount % 10 === 0) { // Log setiap 
+           + 10x polling (5 detik)
+       246 +                      console.log('📊 Polling count:', 
+           + pollCount);
+       247 +                  }
+       248 +                  this.pollForCard();
+       249 +              }, 500);
+       250 +  
+       251 +              console.log('✅ Polling started (every 
+           + 500ms)');
+       252 +          },
+       253 +  
+       254            updateClock() {
+       255                const now = new Date();
+       256                this.currentTime = 
+             now.toLocaleTimeString('id-ID', {
+     ...
+       244    
+       245            async pollForCard() {
+       246                try {
+       247 +                  console.log('🔍 Polling...', this.apiUrl); 
+           + // Debug setiap poll
+       248                    const response = await fetch(this.apiUrl);
+       249 +  
+       250 +                  if (!response.ok) {
+       251 +                      console.error('❌ HTTP Error:', 
+           + response.status);
+       252 +                      return;
+       253 +                  }
+       254 +  
+       255                    const data = await response.json();
+       256 +                  console.log('📥 Poll response:', data); // 
+           + Debug response
+       257    
+       258                    if (data.success && data.card_uid && 
+             data.card_uid !== this.lastCardUid) {
+       259                        console.log('🎴 Card detected:', 
+             data.card_uid);
+       260 -                      this.lastCardUid = data.card_uid;
+       260 +                      this.processCardUID(data.card_uid);
+       261 +                  }
+       262 +              } catch (error) {
+       263 +                  console.error('❌ Polling error:', error);
+       264 +              }
+       265 +          },
+       266    
+       267 -                      console.log('📤 Processing card via 
+           - Livewire...');
+       268 -                      @this.call('processCard', 
+           - data.card_uid);
+       267 +          // Setup USB RFID Reader (Keyboard Emulation)
+       268 +          setupUSBReader() {
+       269 +              console.log('⌨️ Setting up USB Reader (Keyboard
+           +  Mode)...');
+       270    
+       271 -                      // Clear last card after processing
+       272 -                      setTimeout(() => {
+       273 -                          this.lastCardUid = null;
+       274 -                          console.log('🧹 Last card UID 
+           - cleared');
+       271 +              document.addEventListener('keypress', (e) => {
+       272 +                  // Ignore jika user sedang ketik di input 
+           + field
+       273 +                  if (e.target.tagName === 'INPUT' || 
+           + e.target.tagName === 'TEXTAREA') {
+       274 +                      return;
+       275 +                  }
+       276 +  
+       277 +                  // Enter = akhir dari card scan
+       278 +                  if (e.key === 'Enter') {
+       279 +                      if (this.cardBuffer.length > 0) {
+       280 +                          console.log('⌨️ USB Reader detected
+           +  card:', this.cardBuffer);
+       281 +                          
+           + this.processCardUID(this.cardBuffer);
+       282 +                          this.cardBuffer = '';
+       283 +                      }
+       284 +                  } else {
+       285 +                      // Accumulate karakter
+       286 +                      this.cardBuffer += e.key;
+       287 +  
+       288 +                      // Auto-clear buffer setelah 2 detik 
+           + (jika reader tidak kirim Enter)
+       289 +                      clearTimeout(this.bufferTimeout);
+       290 +                      this.bufferTimeout = setTimeout(() => {
+       291 +                          if (this.cardBuffer.length > 5) { 
+           + // Minimal panjang UID
+       292 +                              console.log('⌨️ USB Reader 
+           + detected card (timeout):', this.cardBuffer);
+       293 +                              
+           + this.processCardUID(this.cardBuffer);
+       294 +                          }
+       295 +                          this.cardBuffer = '';
+       296                        }, 2000);
+       297                    }
+       298 -              } catch (error) {
+       299 -                  console.error('❌ Polling error:', error);
+       298 +              });
+       299 +  
+       300 +              console.log('✅ USB Reader ready');
+       301 +          },
+       302 +  
+       303 +          // Setup NFC HP (Web NFC API)
+       304 +          async setupNFC() {
+       305 +              if ('NDEFReader' in window) {
+       306 +                  this.nfcSupported = true;
+       307 +                  console.log('📱 NFC Web API tersedia!');
+       308 +  
+       309 +                  try {
+       310 +                      this.nfcReader = new NDEFReader();
+       311 +                      await this.nfcReader.scan();
+       312 +  
+       313 +                      
+           + this.nfcReader.addEventListener('reading', ({ serialNumber 
+           + }) => {
+       314 +                          console.log('📱 NFC HP detected 
+           + card:', serialNumber);
+       315 +                          this.processCardUID(serialNumber);
+       316 +                      });
+       317 +  
+       318 +                      console.log('✅ NFC Reader started (HP 
+           + mode)');
+       319 +                  } catch (error) {
+       320 +                      console.error('❌ NFC Error:', error);
+       321 +                      console.log('ℹ️ NFC mungkin perlu 
+           + permission dari user');
+       322 +                  }
+       323 +              } else {
+       324 +                  console.log('ℹ️ NFC Web API tidak tersedia 
+           + (gunakan Chrome Android)');
+       325                }
+       326 +          },
+       327 +  
+       328 +          // Process Card UID dari berbagai sumber
+       329 +          processCardUID(cardUid) {
+       330 +              // Prevent double processing
+       331 +              if (cardUid === this.lastCardUid) {
+       332 +                  console.log('⚠️ Card already processed, 
+           + skipping...');
+       333 +                  return;
+       334 +              }
+       335 +  
+       336 +              this.lastCardUid = cardUid;
+       337 +              console.log('📤 Processing card via Livewire:',
+           +  cardUid);
+       338 +  
+       339 +              @this.call('processCard', cardUid);
+       340 +  
+       341 +              // Clear last card after 3 seconds
+       342 +              setTimeout(() => {
+       343 +                  this.lastCardUid = null;
+       344 +                  console.log('🧹 Last card UID cleared');
+       345 +              }, 3000);
+       346            }
+       347        }
+       348    }
+
+● Sekarang mari tambahkan info di UI untuk menunjukkan mode input apa yang aktif:
+
+● Read(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Read 20 lines
+
+● Update(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Updated resources\views\livewire\public\tapping-station.blade.php with
+     12 additions and 9 removals
+
+       180    
+       181            <!-- Info Card Below -->
+       182            <div class="mt-6 bg-white/10 backdrop-blur-sm 
+             rounded-xl p-6 text-white">
+       183 +              <div class="text-center mb-4">
+       184 +                  <div class="text-sm font-semibold 
+           + opacity-90">Mode Input Tersedia:</div>
+       185 +              </div>
+       186                <div class="grid grid-cols-3 gap-6 
+             text-center">
+       187                    <div>
+       188 -                      <div class="text-3xl mb-2">📱</div>
+       189 -                      <div class="font-semibold mb-1">Tempel 
+           -  Kartu</div>
+       190 -                      <div class="text-sm opacity-90">
+           -  Dekatkan kartu MIFARE ke reader</div>
+       188 +                      <div class="text-3xl mb-2">🔌</div>
+       189 +                      <div class="font-semibold mb-1">USB 
+           +  Reader</div>
+       190 +                      <div class="text-sm opacity-90">Scan
+           +   kartu dengan reader USB</div>
+       191                    </div>
+       192                    <div>
+       193 -                      <div class="text-3xl mb-2">✅</div>
+       194 -                      <div class="font-semibold mb-1">
+           -  Otomatis</div>
+       195 -                      <div class="text-sm opacity-90">Sistem 
+           -  mencatat kehadiran Anda</div>
+       193 +                      <div class="text-3xl mb-2">📱</div>
+       194 +                      <div class="font-semibold mb-1">NFC HP
+           +  </div>
+       195 +                      <div class="text-sm opacity-90">Tap 
+           +  kartu dengan HP Android</div>
+       196                    </div>
+       197                    <div>
+       198 -                      <div class="text-3xl mb-2">📊</div>
+       199 -                      <div class="font-semibold mb-1">
+           -  Real-Time</div>
+       200 -                      <div class="text-sm opacity-90">Data 
+           -  langsung tersimpan di sistem</div>
+       198 +                      <div class="text-3xl mb-2">📡</div>
+       199 +                      <div class="font-semibold mb-1">
+           +  API Polling</div>
+       200 +                      <div class="text-sm opacity-90">
+           +  External reader via API</div>
+       201                    </div>
+       202                </div>
+       203            </div>
+
+● Perfect! Sekarang buat dokumentasi cara penggunaannya:
+
+● Write(TAPPING_MODES_GUIDE.md)
+  ⎿  Wrote 1 lines to TAPPING_MODES_GUIDE.md                               
+     # Tapping Station - Input Modes Guide
+     ## Overview
+     Tapping Station mendukung **3 mode input** untuk membaca kartu MIFARE:
+     1. **🔌 USB RFID Reader** (Keyboard Emulation Mode)
+     2. **📱 NFC HP** (Web NFC API)
+     3. **📡 API Polling** (External Reader/Simulator)
+
+● Perfect! Sistem sudah diupdate dengan 3 mode input. Sekarang test lagi:
+
+  🔄 Refresh Browser Dulu
+
+  Ctrl + Shift + R untuk hard refresh dan load script baru.
+
+  ---
+  ✅ Yang Sudah Ditambahkan
+
+  1. USB Reader Support ⌨️
+
+  - Otomatis detect ketika reader "mengetik" card UID
+  - Support berbagai format (dengan/tanpa separator)
+  - Auto-buffer untuk stabilitas
+
+  2. NFC HP Support 📱
+
+  - Web NFC API untuk Chrome Android
+  - Tap kartu langsung dengan HP
+  - Auto-request permission
+
+  3. Enhanced Debugging 🐛
+
+  - Polling sekarang log detail setiap request
+  - Bisa lihat response dari API
+  - Track berapa kali polling
+
+  ---
+  🧪 Test Sekarang
+
+  A. Check Console
+
+  Setelah refresh, console harus show:
+  ✅ tappingStation() function loaded
+  🔄 Tapping Station Initialized
+  📡 Polling URL: http://localhost/absensi-mifare/public/api/rfid/last-card
+  🔄 Starting polling...
+  ⌨️ Setting up USB Reader (Keyboard Mode)...
+  ✅ USB Reader ready
+  ℹ️ NFC Web API tidak tersedia (gunakan Chrome Android)
+  ✅ Polling started (every 500ms)
+  ✅ All input modes initialized
+  📊 Polling count: 10
+  🔍 Polling... http://localhost/absensi-mifare/public/api/rfid/last-card
+  📥 Poll response: {success: false, card_uid: null, message: "No card detected"}
+
+  B. Test USB Reader
+
+  1. Pastikan reader tercolok
+  2. Scan kartu dengan reader
+  3. Lihat console - harus muncul:
+  ⌨️ USB Reader detected card: [UID]
+  📤 Processing card via Livewire: [UID]
+
+  C. Test dengan Simulator (jika USB reader belum siap)
+
+  1. Buka: http://localhost/absensi-mifare/public/get-cards.php
+  2. Copy card UID
+  3. Buka: http://localhost/absensi-mifare/public/rfid-simulator.html
+  4. Paste UID, click "Tap Card"
+  5. Kembali ke tapping station - harus detect
+
+  ---
+  📱 Test NFC HP (Opsional)
+
+  1. Buka Chrome di HP Android
+  2. Akses: http://[IP-Komputer]/absensi-mifare/public
+  3. Tap kartu ke belakang HP
+  4. Chrome akan minta permission NFC - klik Allow
+
+  ---
+  Sekarang coba scan kartu dengan USB reader dan kasih tau apa yang muncul di console!
+
+  Dokumentasi lengkap ada di: TAPPING_MODES_GUIDE.md
+
+> 📥 Poll response: {success: true, card_uid: null, timestamp: null}
+2public/:223 🔍 Polling... 
+http://localhost/absensi-mifare/public/api/rfid/last-card
+public/:232 📥 Poll response: {success: true, card_uid: null, timestamp: 
+null}
+public/:232 📥 Poll response: {success: true, card_uid: null, timestamp: 
+null}
+2public/:223 🔍 Polling... 
+http://localhost/absensi-mifare/public/api/rfid/last-card
+public/:232 📥 Poll response: {success: true, card_uid: null, timestamp: 
+null}
+public/:256 ⌨️ USB Reader detected card: 33115511448844886688
+public/:313 📤 Processing card via Livewire: 33115511448844886688
+public/:232 📥 Poll response: {success: true, card_uid: null, timestamp: 
+null}
+2public/:223 🔍 Polling... 
+http://localhost/absensi-mifare/public/api/rfid/last-card
+public/:232 📥 Poll response: {success: true, card_uid: null, timestamp: 
+null} 
+
+● Excellent! USB Reader berhasil terdeteksi! 🎉
+
+  Console menunjukkan:
+  ⌨️ USB Reader detected card: 33115511448844886688
+  📤 Processing card via Livewire: 33115511448844886688
+
+  Tapi kartu ini kemungkinan tidak ditemukan di database karena format UID berbeda. USB reader mengirim dalam format DECIMAL, sedangkan database mungkin simpan dalam format HEX.
+
+  Mari kita cek format apa yang tersimpan di database:
+
+● Bash(cd /d "D:\xampp\htdocs\absensi-mifare" && php public/get-cards.php | head
+       -20)
+  ⎿  Error: Exit code 1
+     /usr/bin/bash: line 1: cd: too many arguments
+
+● Bash(cd "D:\xampp\htdocs\absensi-mifare" && php public/get-cards.php)
+  ⎿  Error: Exit code 255
+     PHP Fatal error:  Constant expression contains invalid operations in 
+     D:\xampp\htdocs\absensi-mifare\vendor\livewire\livewire\src\helpers.php on 
+     line 118
+
+
+     Fatal error: Constant expression contains invalid operations in 
+     D:\xampp\htdocs\absensi-mifare\vendor\livewire\livewire\src\helpers.php on 
+     line 118
+
+● Baik, langsung kita tambahkan format normalization di backend agar support berbagai format card UID:
+
+● Read(app\Livewire\Public\TappingStation.php)
+  ⎿  Read 50 lines
+
+● Update(app\Livewire\Public\TappingStation.php)
+  ⎿  Updated app\Livewire\Public\TappingStation.php with 75 additions and 3
+     removals
+
+        81            $this->currentDate = 
+             Carbon::now()->locale('id')->isoFormat('dddd, D MMMM YYYY');
+        82        }
+        83    
+        84 +      /**
+        85 +       * Normalize card UID to multiple possible formats
+        86 +       * Support: Decimal, Hex with/without separators
+        87 +       */
+        88 +      private function normalizeCardUid($cardUid)
+        89 +      {
+        90 +          $formats = [];
+        91 +  
+        92 +          // Original format (as-is, uppercase)
+        93 +          $formats[] = strtoupper(trim($cardUid));
+        94 +  
+        95 +          // Remove all separators (colons, dashes, spaces)
+        96 +          $cleanUid = preg_replace('/[:\-\s]/', '', 
+           + $cardUid);
+        97 +  
+        98 +          // Check if it's decimal number (all digits)
+        99 +          if (ctype_digit($cleanUid)) {
+       100 +              // Convert decimal to hex
+       101 +              $hexUid = strtoupper(dechex((int)$cleanUid));
+       102 +  
+       103 +              // Add hex format
+       104 +              $formats[] = $hexUid;
+       105 +  
+       106 +              // Add hex with colons (every 2 chars)
+       107 +              if (strlen($hexUid) >= 4) {
+       108 +                  $formats[] = implode(':', 
+           + str_split($hexUid, 2));
+       109 +              }
+       110 +  
+       111 +              // Add hex with dashes
+       112 +              if (strlen($hexUid) >= 4) {
+       113 +                  $formats[] = implode('-', 
+           + str_split($hexUid, 2));
+       114 +              }
+       115 +          } else {
+       116 +              // Already hex, add variations
+       117 +              $formats[] = strtoupper($cleanUid);
+       118 +  
+       119 +              // Add with colons
+       120 +              if (strlen($cleanUid) >= 4) {
+       121 +                  $formats[] = strtoupper(implode(':', 
+           + str_split($cleanUid, 2)));
+       122 +              }
+       123 +  
+       124 +              // Add with dashes
+       125 +              if (strlen($cleanUid) >= 4) {
+       126 +                  $formats[] = strtoupper(implode('-', 
+           + str_split($cleanUid, 2)));
+       127 +              }
+       128 +          }
+       129 +  
+       130 +          return array_unique($formats);
+       131 +      }
+       132 +  
+       133        public function processCard($cardUid)
+       134        {
+       135            if ($this->isProcessing) {
+     ...
+        91            $this->reset(['studentData', 'attendanceStatus', 
+             'message', 'messageType']);
+        92    
+        93            try {
+        94 -              // Find student
+        95 -              $student = Student::where('card_uid', 
+           - strtoupper($cardUid))
+        96 -                  ->where('is_active', true)
+        94 +              // Normalize card UID to multiple formats
+        95 +              $possibleFormats = 
+           + $this->normalizeCardUid($cardUid);
+        96 +  
+        97 +              Log::info('Tapping card UID formats to try:', [
+        98 +                  'original' => $cardUid,
+        99 +                  'formats' => $possibleFormats
+       100 +              ]);
+       101 +  
+       102 +              // Find student by trying all possible formats
+       103 +              $student = Student::where('is_active', true)
+       104 +                  ->where(function($query) use 
+           + ($possibleFormats) {
+       105 +                      foreach ($possibleFormats as $format) {
+       106 +                          $query->orWhere('card_uid', 
+           + $format);
+       107 +                      }
+       108 +                  })
+       109                    ->with(['class.department'])
+       110                    ->first();
+       111    
+     ...
+       102                    $this->messageType = 'error';
+       103                    $this->dispatch('play-sound', sound: 
+             'error');
+       104                    $this->clearAfterDelay();
+       105 +  
+       106 +                  Log::warning('Card not found in database', 
+           + [
+       107 +                      'tried_formats' => $possibleFormats
+       108 +                  ]);
+       109 +  
+       110                    return;
+       111                }
+       112    
+       113 +              Log::info('Student found', [
+       114 +                  'student_id' => $student->id,
+       115 +                  'name' => $student->full_name,
+       116 +                  'matched_uid' => $student->card_uid
+       117 +              ]);
+       118 +  
+       119                // Get active semester
+       120                $semester = Semester::active()->first();
+       121                if (!$semester) {
+
+● Perfect! Sekarang sistem bisa auto-detect berbagai format card UID. Refresh browser dan scan kartu lagi:
+
+● Bash(cd "D:\xampp\htdocs\absensi-mifare" && php artisan cache:clear)
+  ⎿  Error: Exit code 255
+     PHP Fatal error:  Constant expression contains invalid operations in 
+     D:\xampp\htdocs\absensi-mifare\vendor\livewire\livewire\src\helpers.php on 
+     line 118
+
+
+     Fatal error: Constant expression contains invalid operations in 
+     D:\xampp\htdocs\absensi-mifare\vendor\livewire\livewire\src\helpers.php on 
+     line 118
+
+● Tidak apa, cache error bisa diabaikan. Sekarang refresh browser (Ctrl+Shift+R) dan scan kartu lagi dengan USB reader.
+
+  Sistem sekarang akan:
+
+  1. Terima UID: 33115511448844886688 (decimal)
+  2. Convert ke hex: 1D2B3C4D5E6F8090 (contoh)
+  3. Generate berbagai format:
+    - 33115511448844886688 (original)
+    - 1D2B3C4D5E6F8090 (hex plain)
+    - 1D:2B:3C:4D:5E:6F:80:90 (hex with colons)
+    - 1D-2B-3C-4D-5E-6F-80-90 (hex with dashes)
+  4. Cari di database dengan semua format tersebut
+
+  Scan kartu sekarang dan lihat hasilnya!
+
+  Jika masih "Kartu tidak terdaftar", tolong screenshot atau copy isi tabel students (kolom card_uid) agar saya bisa lihat format apa yang tersimpan di database. Atau akses PHPMyAdmin:
+
+  http://localhost/phpmyadmin
+
+  Buka database → table students → lihat kolom card_uid untuk beberapa siswa.
+
+> 2public/:223 🔍 Polling... 
+http://localhost/absensi-mifare/public/api/rfid/last-card
+public/:256 ⌨️ USB Reader detected card: 33115511448844886688
+public/:313 📤 Processing card via Livewire: 33115511448844886688 
+
+● Bagus! Card terdeteksi dan dikirim ke Livewire. Tapi sepertinya tidak ada response (tidak muncul error atau data siswa).
+
+  Mari kita cek Laravel log untuk lihat format apa yang dicoba dan kenapa tidak match:
+
+● Bash(tail -50 "D:\xampp\htdocs\absensi-mifare\storage\logs\laravel.log")
+  ⎿ #29 D:\\xampp\\htdocs\\absensi-mifare\\vendor\\laravel\\framework\\src\
+    \Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): I
+    lluminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(I
+    … +157 lines (ctrl+o to expand)
+
+
+
+
+● Perfect! Log menunjukkan masalahnya:
+
+  Card UID dari USB reader: 33115511448844886688 (decimal)
+
+  Format yang dicoba:
+  - 33115511448844886688 (original decimal)
+  - 7FFFFFFFFFFFFFFF (converted hex - tapi INI SALAH karena number overflow!)
+  - 7F:FF:FF:FF:FF:FF:FF:FF
+  - 7F-FF-FF-FF-FF-FF-FF-FF
+
+  Masalah: Angka 33115511448844886688 terlalu besar untuk integer PHP, jadi conversion ke hex jadi salah.
+
+  Sekarang kita perlu cek database untuk lihat format apa yang sebenarnya tersimpan. Buat script sederhana untuk query database:
+
+● Write(public\check-db.php)
+  ⎿  Wrote 1 lines to public\check-db.php                              
+     <?php
+     // Simple DB check without Laravel bootstrap
+     $host = 'localhost';
+     $db   = 'absensi_mifare';
+     $user = 'root';
+     $pass = '';
+     try {
+         $pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
+         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+● Sekarang buka di browser:
+
+  http://localhost/absensi-mifare/public/check-db.php
+
+  Ini akan menunjukkan format card_uid yang tersimpan di database untuk semua siswa aktif.
+
+  Tolong screenshot atau copy-paste hasilnya agar saya bisa lihat:
+  1. Format apa yang digunakan (hex/decimal/mixed)
+  2. Ada separator atau tidak (colon/dash)
+  3. Panjang karakter (8, 14, 20 chars, dll)
+
+  Dengan info ini saya bisa fix conversion function agar match dengan format database Anda.
+
+> Active Students with Card UIDs: ================================ ID: 2 
+Name: jumri NIS: 11223344 Card UID: 3151484868 UID Length: 10 chars --- 
+Total: 1 students 2public/:223 🔍 Polling... 
+http://localhost/absensi-mifare/public/api/rfid/last-card
+public/:232 📥 Poll response: {success: true, card_uid: null, timestamp: 
+null}
+public/:232 📥 Poll response: {success: true, card_uid: null, timestamp: 
+null}
+public/:256 ⌨️ USB Reader detected card: 33221199112222443377
+public/:313 📤 Processing card via Livewire: 33221199112222443377 
+
+● PERFECT! Sekarang saya mengerti masalahnya! 🎯
+
+  Database: 3151484868 (10 digit)
+  USB Reader: 33115511448844886688 (20 digit)
+
+  Pattern yang terdeteksi: USB reader mengirim setiap digit 2 kali!
+
+  Database:    3 1 5 1 4 8 4 8 6 8
+  Reader kirim: 33 11 55 11 44 88 44 88 66 88
+
+  Jadi reader Anda mengirim dalam mode "doubled digits". Mari saya fix normalization function untuk handle ini:
+
+● Update(app\Livewire\Public\TappingStation.php)
+  ⎿  Updated app\Livewire\Public\TappingStation.php with 45 additions and 1
+      removals
+       83    
+       84        /**
+       85         * Normalize card UID to multiple possible formats
+       86 -       * Support: Decimal, Hex with/without separators
+       86 +       * Support: Decimal, Hex, Doubled digits, 
+          +  with/without separators
+       87         */
+       88        private function normalizeCardUid($cardUid)
+       89        {
+     ...
+        94    
+        95            // Remove all separators (colons, dashes, spaces)
+        96            $cleanUid = preg_replace('/[:\-\s]/', '', 
+             $cardUid);
+        97 +          $formats[] = strtoupper($cleanUid);
+        98    
+        99            // Check if it's decimal number (all digits)
+       100            if (ctype_digit($cleanUid)) {
+       101 -              // Convert decimal to hex
+       102 -              $hexUid = strtoupper(dechex((int)$cleanUid));
+       101    
+       102 -              // Add hex format
+       103 -              $formats[] = $hexUid;
+       102 +              // Check for "doubled digits" pattern (e.g., 
+           + 33115511 -> 3151)
+       103 +              // This happens when USB readers send each 
+           + digit twice
+       104 +              if (strlen($cleanUid) % 2 === 0 && 
+           + strlen($cleanUid) >= 10) {
+       105 +                  $doubled = true;
+       106 +                  $chars = str_split($cleanUid);
+       107    
+       108 -              // Add hex with colons (every 2 chars)
+       109 -              if (strlen($hexUid) >= 4) {
+       110 -                  $formats[] = implode(':', 
+           - str_split($hexUid, 2));
+       108 +                  // Check if every pair is the same digit
+       109 +                  for ($i = 0; $i < strlen($cleanUid); $i += 
+           + 2) {
+       110 +                      if ($chars[$i] !== $chars[$i + 1]) {
+       111 +                          $doubled = false;
+       112 +                          break;
+       113 +                      }
+       114 +                  }
+       115 +  
+       116 +                  // If doubled, un-double it
+       117 +                  if ($doubled) {
+       118 +                      $undoubled = '';
+       119 +                      for ($i = 0; $i < strlen($cleanUid); $i
+           +  += 2) {
+       120 +                          $undoubled .= $chars[$i];
+       121 +                      }
+       122 +                      $formats[] = $undoubled;
+       123 +                      Log::info('Detected doubled-digit UID',
+           +  [
+       124 +                          'original' => $cleanUid,
+       125 +                          'undoubled' => $undoubled
+       126 +                      ]);
+       127 +                  }
+       128                }
+       129    
+       130 -              // Add hex with dashes
+       131 -              if (strlen($hexUid) >= 4) {
+       132 -                  $formats[] = implode('-', 
+           - str_split($hexUid, 2));
+       130 +              // Try hex conversion (only for reasonable size
+           +  numbers)
+       131 +              if (strlen($cleanUid) <= 15) {
+       132 +                  try {
+       133 +                      $hexUid = 
+           + strtoupper(dechex((int)$cleanUid));
+       134 +                      $formats[] = $hexUid;
+       135 +  
+       136 +                      // Add hex with colons (every 2 chars)
+       137 +                      if (strlen($hexUid) >= 4) {
+       138 +                          $formats[] = implode(':', 
+           + str_split($hexUid, 2));
+       139 +                      }
+       140 +  
+       141 +                      // Add hex with dashes
+       142 +                      if (strlen($hexUid) >= 4) {
+       143 +                          $formats[] = implode('-', 
+           + str_split($hexUid, 2));
+       144 +                      }
+       145 +                  } catch (\Exception $e) {
+       146 +                      // Skip if number too large
+       147 +                  }
+       148                }
+       149            } else {
+       150                // Already hex, add variations
+
+● Perfect! Sekarang sistem bisa detect dan un-double format UID dari USB reader.
+
+  🔄 Test Sekarang
+
+  Refresh browser (Ctrl+Shift+R) dan scan kartu jumri lagi.
+
+  Yang akan terjadi:
+
+  1. Reader kirim: 33115511448844886688
+  2. Sistem detect: "Oh ini doubled-digit pattern!"
+  3. Un-double: 3151484868
+  4. Match database: ✅ Student "jumri" found!
+  5. Tampilkan data siswa di layar
+
+  ---
+  Expected Console Output:
+
+  ⌨️ USB Reader detected card: 33115511448844886688
+  📤 Processing card via Livewire: 33115511448844886688
+
+  Di Laravel log (storage/logs/laravel.log):
+  [local.INFO] Detected doubled-digit UID
+    original: 33115511448844886688
+    undoubled: 3151484868
+
+  [local.INFO] Student found
+    student_id: 2
+    name: jumri
+    matched_uid: 3151484868
+
+  Di browser tapping station:
+  - Foto siswa (atau initial "J")
+  - Nama: jumri
+  - NIS: 11223344
+  - Status check-in/check-out
+
+  ---
+  Silakan scan kartu sekarang dan kasih tau hasilnya! 🎯
+
+> sudah berhasil, hapus console. namun ketika kartu tidak terdaftar muncul 
+kan notifikasi dan informasi lainya. buat halaman yang profesional, 
+minimalis, elegan dan ui ux friendly. 
+
+● Excellent! Sekarang saya akan membuat UI yang lebih profesional dan minimalis. Mari kita hapus debug logs dan redesign halaman:
+
+● Update(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Updated resources\views\livewire\public\tapping-station.blade.php with
+     9 additions and 69 removals
+
+       217            nfcReader: null,
+       218    
+       219            init() {
+       220 -              console.log('🔄 Tapping Station Initialized');
+       221 -              console.log('📡 Polling URL:', this.apiUrl);
+       222 -  
+       220                // Update clock every second
+       221                setInterval(() => {
+       222                    this.updateClock();
+       223                }, 1000);
+       224    
+       225 -              // Poll for RFID cards every 500ms (diperlambat
+           -  sedikit untuk stabilitas)
+       226 -              this.startPolling();
+       225 +              // Start polling for cards
+       226 +              this.pollingInterval = setInterval(() => {
+       227 +                  this.pollForCard();
+       228 +              }, 500);
+       229    
+       230                // Setup USB Reader (Keyboard Emulation Mode)
+       231                this.setupUSBReader();
+     ...
+       238                setInterval(() => {
+       239                    @this.call('updateTime');
+       240                }, 60000);
+       241 -  
+       242 -              console.log('✅ All input modes initialized');
+       241            },
+       242    
+       243 -          startPolling() {
+       244 -              console.log('🔄 Starting polling...');
+       245 -              let pollCount = 0;
+       246 -  
+       247 -              this.pollingInterval = setInterval(() => {
+       248 -                  pollCount++;
+       249 -                  if (pollCount % 10 === 0) { // Log setiap 
+           - 10x polling (5 detik)
+       250 -                      console.log('📊 Polling count:', 
+           - pollCount);
+       251 -                  }
+       252 -                  this.pollForCard();
+       253 -              }, 500);
+       254 -  
+       255 -              console.log('✅ Polling started (every 
+           - 500ms)');
+       256 -          },
+       257 -  
+       243            updateClock() {
+       244                const now = new Date();
+       245                this.currentTime = 
+             now.toLocaleTimeString('id-ID', {
+     ...
+       269    
+       270            async pollForCard() {
+       271                try {
+       272 -                  console.log('🔍 Polling...', this.apiUrl); 
+           - // Debug setiap poll
+       272                    const response = await fetch(this.apiUrl);
+       273 +                  if (!response.ok) return;
+       274    
+       275 -                  if (!response.ok) {
+       276 -                      console.error('❌ HTTP Error:', 
+           - response.status);
+       277 -                      return;
+       278 -                  }
+       279 -  
+       275                    const data = await response.json();
+       276 -                  console.log('📥 Poll response:', data); // 
+           - Debug response
+       277 -  
+       276                    if (data.success && data.card_uid && 
+             data.card_uid !== this.lastCardUid) {
+       277 -                      console.log('🎴 Card detected:', 
+           - data.card_uid);
+       277                        this.processCardUID(data.card_uid);
+       278                    }
+       279                } catch (error) {
+       280 -                  console.error('❌ Polling error:', error);
+       280 +                  // Silent fail
+       281                }
+       282            },
+       283    
+       284 -          // Setup USB RFID Reader (Keyboard Emulation)
+       284            setupUSBReader() {
+       285 -              console.log('⌨️ Setting up USB Reader (Keyboard
+           -  Mode)...');
+       286 -  
+       285                document.addEventListener('keypress', (e) => {
+       286 -                  // Ignore jika user sedang ketik di input 
+           - field
+       286                    if (e.target.tagName === 'INPUT' || 
+             e.target.tagName === 'TEXTAREA') {
+       287                        return;
+       288                    }
+       289    
+       290 -                  // Enter = akhir dari card scan
+       290                    if (e.key === 'Enter') {
+       291                        if (this.cardBuffer.length > 0) {
+       292 -                          console.log('⌨️ USB Reader detected
+           -  card:', this.cardBuffer);
+       292                            
+             this.processCardUID(this.cardBuffer);
+       293                            this.cardBuffer = '';
+       294                        }
+       295                    } else {
+       296 -                      // Accumulate karakter
+       296                        this.cardBuffer += e.key;
+       297 -  
+       298 -                      // Auto-clear buffer setelah 2 detik 
+           - (jika reader tidak kirim Enter)
+       297                        clearTimeout(this.bufferTimeout);
+       298                        this.bufferTimeout = setTimeout(() => {
+       299 -                          if (this.cardBuffer.length > 5) {
+           -   // Minimal panjang UID
+       300 -                              console.log('⌨️ USB Reader 
+           - detected card (timeout):', this.cardBuffer);
+       299 +                          if (this.cardBuffer.length > 5) {
+       300                                
+             this.processCardUID(this.cardBuffer);
+       301                            }
+       302                            this.cardBuffer = '';
+       303                        }, 2000);
+       304                    }
+       305                });
+       306 -  
+       307 -              console.log('✅ USB Reader ready');
+       306            },
+       307    
+       308 -          // Setup NFC HP (Web NFC API)
+       308            async setupNFC() {
+       309                if ('NDEFReader' in window) {
+       310                    this.nfcSupported = true;
+       311 -                  console.log('📱 NFC Web API tersedia!');
+       312 -  
+       311                    try {
+       312                        this.nfcReader = new NDEFReader();
+       313                        await this.nfcReader.scan();
+       314 -  
+       314                        
+             this.nfcReader.addEventListener('reading', ({ serialNumber 
+             }) => {
+       315 -                          console.log('📱 NFC HP detected 
+           - card:', serialNumber);
+       315                            this.processCardUID(serialNumber);
+       316                        });
+       317 -  
+       318 -                      console.log('✅ NFC Reader started (HP 
+           - mode)');
+       317                    } catch (error) {
+       318 -                      console.error('❌ NFC Error:', error);
+       319 -                      console.log('ℹ️ NFC mungkin perlu 
+           - permission dari user');
+       318 +                      // Silent fail
+       319                    }
+       320 -              } else {
+       321 -                  console.log('ℹ️ NFC Web API tidak tersedia 
+           - (gunakan Chrome Android)');
+       320                }
+       321            },
+       322    
+       323 -          // Process Card UID dari berbagai sumber
+       323            processCardUID(cardUid) {
+       324 -              // Prevent double processing
+       325 -              if (cardUid === this.lastCardUid) {
+       326 -                  console.log('⚠️ Card already processed, 
+           - skipping...');
+       327 -                  return;
+       328 -              }
+       324 +              if (cardUid === this.lastCardUid) return;
+       325    
+       326                this.lastCardUid = cardUid;
+       327 -              console.log('📤 Processing card via Livewire:',
+           -  cardUid);
+       328 -  
+       327                @this.call('processCard', cardUid);
+       328    
+       329 -              // Clear last card after 3 seconds
+       329                setTimeout(() => {
+       330                    this.lastCardUid = null;
+       331 -                  console.log('🧹 Last card UID cleared');
+       331                }, 3000);
+       332            }
+       333        }
+       334    }
+       335 -  
+       336 -  // Debug: Test if script is loaded
+       337 -  console.log('✅ tappingStation() function loaded');
+       335    </script>
+       336    @endpush
+
+● Sekarang mari redesign UI menjadi lebih profesional dan elegant:
+
+● Read(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Read 80 lines
+
+● Write(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Updated resources\views\livewire\public\tapping-station.blade.php with
+     200 additions and 155 removals
+
+         1 -  <div class="min-h-screen flex items-center justify-center 
+           -  p-4" x-data="tappingStation()" x-init="init()">
+         2 -      <!-- Main Container -->
+         3 -      <div class="w-full max-w-6xl">
+         4 -          <!-- Header Section -->
+         5 -          <div class="text-center mb-8">
+         6 -              <div class="inline-flex items-center justify-
+           -  center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+         7 -                  <svg class="w-12 h-12 text-blue-600" 
+           - fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         8 -                      <path stroke-linecap="round" 
+           - stroke-linejoin="round" stroke-width="2" d="M12 11c0 
+           - 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 
+           - 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 
+           - 6.844A21.88 21.88 0 0015.171 17m3.839 
+           - 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 
+           - 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+         9 -                  </svg>
+         1 +  <div class="min-h-screen flex items-center justify-center 
+           +  p-6" x-data="tappingStation()" x-init="init()">
+         2 +      <div class="w-full max-w-5xl">
+         3 +  
+         4 +          <!-- Header -->
+         5 +          <div class="text-center mb-10 animate-fade-in">
+         6 +              <div class="inline-flex items-center gap-3 
+           +  mb-4">
+         7 +                  <div class="w-12 h-12 bg-white/20 
+           + backdrop-blur-sm rounded-xl flex items-center 
+           + justify-center">
+         8 +                      <svg class="w-7 h-7 text-white" 
+           + fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         9 +                          <path stroke-linecap="round" 
+           + stroke-linejoin="round" stroke-width="2.5" d="M12 11c0 
+           + 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 
+           + 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 
+           + 6.844A21.88 21.88 0 0015.171 17m3.839 
+           + 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 
+           + 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+        10 +                      </svg>
+        11 +                  </div>
+        12 +                  <h1 class="text-3xl font-semibold 
+           + text-white tracking-tight">{{ config('app.name') }}</h1>
+        13                </div>
+        14 -              <h1 class="text-4xl font-bold text-white 
+           - mb-2">{{ config('app.name') }}</h1>
+        15 -              <p class="text-xl text-white/90">Sistem Absensi
+           -  MIFARE</p>
+        14 +              <p class="text-white/80 text-sm font-medium 
+           + tracking-wide uppercase">Sistem Absensi Digital</p>
+        15            </div>
+        16    
+        17            <!-- Main Card -->
+        18 -          <div class="bg-white rounded-2xl
+           -   shadow-2xl overflow-hidden">
+        19 -              <!-- Time & Date Display -->
+        20 -              <div class="bg-gradient-to-r from-blue-600 
+           - to-blue-700 text-white p-6 text-center">
+        21 -                  <div class="text-5xl font-bold mb-2" 
+           - x-text="currentTime">{{ $currentTime }}</div>
+        22 -                  <div class="text-lg opacity-90">{{ 
+           - $currentDate }}</div>
+        18 +          <div class="bg-white rounded-3xl
+           +   shadow-2xl overflow-hidden transition-all duration-500">
+        19 +  
+        20 +              <!-- Time Display -->
+        21 +              <div class="relative bg-gradient-to-br 
+           + from-slate-900 via-slate-800 to-slate-900 text-white px-8 
+           + py-10 text-center">
+        22 +                  <div class="absolute inset-0 
+           + bg-gradient-to-br from-blue-600/10 to-purple-600/10"></div>
+        23 +                  <div class="relative">
+        24 +                      <div class="text-6xl font-light mb-2 
+           + tracking-wider" x-text="currentTime">{{ $currentTime 
+           + }}</div>
+        25 +                      <div class="text-sm font-medium 
+           + text-white/70 uppercase tracking-widest">{{ $currentDate 
+           + }}</div>
+        26 +                  </div>
+        27                </div>
+        28    
+        29                <!-- Content Area -->
+        30 -              <div class="p-8">
+        30 +              <div class="p-10">
+        31                    @if(!$studentData)
+        32                        <!-- Waiting State -->
+        33 -                      <div class="text-center py-12">
+        34 -                          <div class="inline-flex 
+           - items-center justify-center w-32 h-32 bg-slate-50 
+           - rounded-full mb-6 animate-pulse">
+        35 -                              <svg class="w-16 h-16 
+           - text-slate-400" fill="none" stroke="currentColor" viewBox="0
+           -  0 24 24">
+        36 -                                  <path 
+           - stroke-linecap="round" stroke-linejoin="round" 
+           - stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 
+           - 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 
+           - 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 
+           - 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 
+           - 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 
+           - 1.07-4"/>
+        37 -                              </svg>
+        33 +                      <div class="text-center py-
+           +  16 transition-all duration-500">
+        34 +  
+        35 +                          <!-- Animated Icon -->
+        36 +                          <div class="relative inline-block 
+           + mb-8">
+        37 +                              <div class="absolute inset-0 
+           + bg-blue-100 rounded-full animate-ping opacity-20"></div>
+        38 +                              <div class="relative w-28 h-28 
+           + bg-gradient-to-br from-blue-50 to-slate-50 rounded-full flex
+           +  items-center justify-center border border-slate-200">
+        39 +                                  <svg class="w-14 h-14 
+           + text-blue-600" fill="none" stroke="currentColor" viewBox="0 
+           + 0 24 24">
+        40 +                                      <path 
+           + stroke-linecap="round" stroke-linejoin="round" 
+           + stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 
+           + 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 
+           + 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 
+           + 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 
+           + 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 
+           + 1.07-4"/>
+        41 +                                  </svg>
+        42 +                              </div>
+        43                            </div>
+        44 -                          <h2 class="text-2xl font-bold 
+           - text-slate-900 mb-3">Tempel Kartu Anda</h2>
+        45 -                          <p class="text-slate-600 
+           - text-lg">Dekatkan kartu MIFARE ke reader untuk absen</p>
+        44    
+        45 -                          <!-- Stats -->
+        46 -                          <div class="grid grid-cols-3 gap-4 
+           - mt-12 max-w-2xl mx-auto">
+        47 -                              <div class="bg-slate-50 border 
+           - border-slate-200 rounded-xl p-4">
+        48 -                                  <div class="text-3xl 
+           - font-bold text-slate-900">{{ 
+           - number_format($todayStats['total_present']) }}</div>
+        49 -                                  <div class="text-sm 
+           - font-medium text-slate-600 mt-1">Hadir Hari Ini</div>
+        45 +                          <h2 class="text-2xl font-semibold 
+           + text-slate-900 mb-2">Siap Melayani</h2>
+        46 +                          <p class="text-slate-500 text-base 
+           + max-w-md mx-auto">Silakan tempelkan kartu MIFARE Anda pada 
+           + reader</p>
+        47 +  
+        48 +                          <!-- Statistics -->
+        49 +                          <div class="grid grid-cols-3 gap-6 
+           + mt-16 max-w-3xl mx-auto">
+        50 +                              <div class="group 
+           + hover:scale-105 transition-transform duration-300">
+        51 +                                  <div 
+           + class="bg-gradient-to-br from-slate-50 to-white border 
+           + border-slate-200 rounded-2xl p-6 shadow-sm">
+        52 +                                      <div class="text-4xl 
+           + font-bold bg-gradient-to-br from-slate-700 to-slate-900 
+           + bg-clip-text text-transparent">
+        53 +                                          {{ 
+           + number_format($todayStats['total_present']) }}
+        54 +                                      </div>
+        55 +                                      <div class="text-sm 
+           + font-medium text-slate-600 mt-2 uppercase 
+           + tracking-wide">Hadir Hari Ini</div>
+        56 +                                  </div>
+        57                                </div>
+        58 -                              <div class="bg-slate-50 border 
+           - border-slate-200 rounded-xl p-4">
+        59 -                                  <div class="text-3xl 
+           - font-bold text-blue-600">{{ 
+           - number_format($todayStats['on_time']) }}</div>
+        60 -                                  <div class="text-sm 
+           - font-medium text-slate-600 mt-1">Tepat Waktu</div>
+        58 +                              <div class="group 
+           + hover:scale-105 transition-transform duration-300">
+        59 +                                  <div 
+           + class="bg-gradient-to-br from-blue-50 to-white border 
+           + border-blue-200 rounded-2xl p-6 shadow-sm">
+        60 +                                      <div class="text-4xl 
+           + font-bold bg-gradient-to-br from-blue-600 to-blue-700 
+           + bg-clip-text text-transparent">
+        61 +                                          {{ 
+           + number_format($todayStats['on_time']) }}
+        62 +                                      </div>
+        63 +                                      <div class="text-sm 
+           + font-medium text-blue-700 mt-2 uppercase 
+           + tracking-wide">Tepat Waktu</div>
+        64 +                                  </div>
+        65                                </div>
+        66 -                              <div class="bg-slate-50 border 
+           - border-slate-200 rounded-xl p-4">
+        67 -                                  <div class="text-3xl 
+           - font-bold text-slate-600">{{ 
+           - number_format($todayStats['late']) }}</div>
+        68 -                                  <div class="text-sm 
+           - font-medium text-slate-600 mt-1">Terlambat</div>
+        66 +                              <div class="group 
+           + hover:scale-105 transition-transform duration-300">
+        67 +                                  <div 
+           + class="bg-gradient-to-br from-amber-50 to-white border 
+           + border-amber-200 rounded-2xl p-6 shadow-sm">
+        68 +                                      <div class="text-4xl 
+           + font-bold bg-gradient-to-br from-amber-600 to-amber-700 
+           + bg-clip-text text-transparent">
+        69 +                                          {{ 
+           + number_format($todayStats['late']) }}
+        70 +                                      </div>
+        71 +                                      <div class="text-sm 
+           + font-medium text-amber-700 mt-2 uppercase 
+           + tracking-wide">Terlambat</div>
+        72 +                                  </div>
+        73                                </div>
+        74                            </div>
+        75                        </div>
+        76                    @else
+        77                        <!-- Student Info Display -->
+        78 -                      <div class="text-center">
+        78 +                      <div class="text-center
+           +   animate-slide-up">
+        79 +  
+        80                            <!-- Student Photo -->
+        81 -                          <div class="inline-block mb-6">
+        81 +                          <div class="inline-block mb-8">
+        82                                @if($studentData['photo'])
+        83 -                                  <img src="{{ 
+           - $studentData['photo'] }}" alt="{{ $studentData['name'] }}" 
+           - class="w-32 h-32 rounded-full border-4 border-blue-500 
+           - shadow-lg object-cover">
+        83 +                                  <div class="relative">
+        84 +                                      <div class="absolute 
+           + inset-0 bg-gradient-to-br from-blue-400 to-purple-400 
+           + rounded-full blur-xl opacity-30"></div>
+        85 +                                      <img src="{{ 
+           + $studentData['photo'] }}" alt="{{ $studentData['name'] }}" 
+           + class="relative w-36 h-36 rounded-full border-4 border-white
+           +  shadow-2xl object-cover">
+        86 +                                  </div>
+        87                                @else
+        88 -                                  <div class="w-32 h-32 
+           - rounded-full border-4 border-blue-500 shadow-lg bg-blue-100 
+           - flex items-center justify-center">
+        89 -                                      <span class="text-4xl 
+           - font-bold text-blue-600">{{ substr($studentData['name'], 0, 
+           - 1) }}</span>
+        88 +                                  <div class="relative">
+        89 +                                      <div class="absolute 
+           + inset-0 bg-gradient-to-br from-blue-400 to-purple-400 
+           + rounded-full blur-xl opacity-30"></div>
+        90 +                                      <div class="relative 
+           + w-36 h-36 rounded-full border-4 border-white shadow-2xl 
+           + bg-gradient-to-br from-blue-500 to-blue-600 flex 
+           + items-center justify-center">
+        91 +                                          <span 
+           + class="text-5xl font-bold text-white">{{ 
+           + substr($studentData['name'], 0, 1) }}</span>
+        92 +                                      </div>
+        93                                    </div>
+        94                                @endif
+        95                            </div>
+        96    
+        97 -                          <!-- Student Info -->
+        98 -                          <h2 class="text-3xl font-bold 
+           -  text-slate-900 mb-2">{{ $studentData['name'] }}</h2>
+        99 -                          <div class="text-lg 
+           -  text-slate-600 mb-6">
+       100 -                              <span 
+           - class="font-semibold">NIS:</span> {{ $studentData['nis'] }} 
+           - |
+       101 -                              <span 
+           - class="font-semibold">Kelas:</span> {{ $studentData['class']
+           -  }}
+        97 +                          <!-- Student Details -->
+        98 +                          <h2 class="text-3xl font-bold 
+           +  text-slate-900 mb-3">{{ $studentData['name'] }}</h2>
+        99 +                          <div class="flex items-center 
+           +  justify-center gap-4 text-slate-600 mb-8">
+       100 +                              <div class="flex items-center 
+           + gap-2">
+       101 +                                  <svg class="w-4 h-4 
+           + text-slate-400" fill="none" stroke="currentColor" viewBox="0
+           +  0 24 24">
+       102 +                                      <path 
+           + stroke-linecap="round" stroke-linejoin="round" 
+           + stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 
+           + 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 
+           + 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 
+           + 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+       103 +                                  </svg>
+       104 +                                  <span 
+           + class="font-medium">{{ $studentData['nis'] }}</span>
+       105 +                              </div>
+       106 +                              <span 
+           + class="text-slate-300">•</span>
+       107 +                              <div class="flex items-center 
+           + gap-2">
+       108 +                                  <svg class="w-4 h-4 
+           + text-slate-400" fill="none" stroke="currentColor" viewBox="0
+           +  0 24 24">
+       109 +                                      <path 
+           + stroke-linecap="round" stroke-linejoin="round" 
+           + stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 
+           + 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 
+           + 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+       110 +                                  </svg>
+       111 +                                  <span 
+           + class="font-medium">{{ $studentData['class'] }}</span>
+       112 +                              </div>
+       113                            </div>
+       114    
+       115                            <!-- Status Message -->
+       116                            @if($message)
+       117 -                              <div class="mb-6 p-4 rounded
+           -  -xl border-2
+       118 -                                  {{ 
+           -  $messageType === 'success'
+           -   ? 'bg-blue-50 border-blue-500 text-blue-800' : '' }}
+       119 -                                  {{ $messageType === 'error'
+           -  ? 'bg-slate-100 border-slate-500 text-slate-800' : '' }}
+       120 -                                  {{ $messageType === 'info' 
+           - ? 'bg-slate-50 border-slate-400 text-slate-700' : '' }}">
+       121 -                                  <div class="flex 
+           - items-center justify-center gap-3">
+       122 -                                      @if($messageType === 
+           - 'success')
+       123 -                                          <svg class="w-8 h-8
+           -  text-blue-600" fill="none" stroke="currentColor" viewBox="0
+           -  0 24 24">
+       124 -                                              <path 
+           - stroke-linecap="round" stroke-linejoin="round" 
+           - stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 
+           - 0118 0z"/>
+       125 -                                          </svg>
+       126 -                                      @elseif($messageType 
+           - === 'error')
+       127 -                                          <svg class="w-8 h-8
+           -  text-slate-600" fill="none" stroke="currentColor" 
+           - viewBox="0 0 24 24">
+       128 -                                              <path 
+           - stroke-linecap="round" stroke-linejoin="round" 
+           - stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 
+           - 0 0118 0z"/>
+       129 -                                          </svg>
+       130 -                                      @else
+       131 -                                          <svg class="w-8 h-8
+           -  text-slate-600" fill="none" stroke="currentColor" 
+           - viewBox="0 0 24 24">
+       132 -                                              <path 
+           - stroke-linecap="round" stroke-linejoin="round" 
+           - stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 
+           - 11-18 0 9 9 0 0118 0z"/>
+       133 -                                          </svg>
+       134 -                                      @endif
+       135 -                                      <span class="text-xl 
+           - font-semibold">{{ $message }}</span>
+       136 -                                  </div>
+       117 +                              <div class="mb-8 max-w-xl mx-
+           +  auto">
+       118 +                                  @if(
+           +  $messageType === 'success')
+       119 +                                      <div 
+           + class="bg-gradient-to-r from-blue-50 to-blue-50/50 border-2 
+           + border-blue-200 rounded-2xl p-5 shadow-sm">
+       120 +                                          <div class="flex 
+           + items-center justify-center gap-3">
+       121 +                                              <div 
+           + class="w-10 h-10 bg-blue-500 rounded-full flex items-center 
+           + justify-center flex-shrink-0">
+       122 +                                                  <svg 
+           + class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+           +  viewBox="0 0 24 24">
+       123 +                                                      <path 
+           + stroke-linecap="round" stroke-linejoin="round" 
+           + stroke-width="2.5" d="M5 13l4 4L19 7"/>
+       124 +                                                  </svg>
+       125 +                                              </div>
+       126 +                                              <span 
+           + class="text-lg font-semibold text-blue-900">{{ $message 
+           + }}</span>
+       127 +                                          </div>
+       128 +                                      </div>
+       129 +                                  @elseif($messageType === 
+           + 'error')
+       130 +                                      <div 
+           + class="bg-gradient-to-r from-red-50 to-red-50/50 border-2 
+           + border-red-200 rounded-2xl p-5 shadow-sm">
+       131 +                                          <div class="flex 
+           + items-center justify-center gap-3">
+       132 +                                              <div 
+           + class="w-10 h-10 bg-red-500 rounded-full flex items-center 
+           + justify-center flex-shrink-0">
+       133 +                                                  <svg 
+           + class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+           +  viewBox="0 0 24 24">
+       134 +                                                      <path 
+           + stroke-linecap="round" stroke-linejoin="round" 
+           + stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+       135 +                                                  </svg>
+       136 +                                              </div>
+       137 +                                              <span 
+           + class="text-lg font-semibold text-red-900">{{ $message 
+           + }}</span>
+       138 +                                          </div>
+       139 +                                      </div>
+       140 +                                  @else
+       141 +                                      <div 
+           + class="bg-gradient-to-r from-slate-50 to-slate-50/50 
+           + border-2 border-slate-200 rounded-2xl p-5 shadow-sm">
+       142 +                                          <div class="flex 
+           + items-center justify-center gap-3">
+       143 +                                              <div 
+           + class="w-10 h-10 bg-slate-500 rounded-full flex items-center
+           +  justify-center flex-shrink-0">
+       144 +                                                  <svg 
+           + class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+           +  viewBox="0 0 24 24">
+       145 +                                                      <path 
+           + stroke-linecap="round" stroke-linejoin="round" 
+           + stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 
+           + 11-18 0 9 9 0 0118 0z"/>
+       146 +                                                  </svg>
+       147 +                                              </div>
+       148 +                                              <span 
+           + class="text-lg font-semibold text-slate-900">{{ $message 
+           + }}</span>
+       149 +                                          </div>
+       150 +                                      </div>
+       151 +                                  @endif
+       152                                </div>
+       153                            @endif
+       154    
+       155                            <!-- Attendance Details -->
+       156                            @if($attendanceStatus)
+       157 -                              <div class="bg-slate-50 
+           -  border border-slate-200 rounded-xl p-6 max-w-md mx-auto">
+       157 +                              <div class="bg-
+           +  gradient-to-br from-slate-50 to-white 
+           +  border border-slate-200 rounded-2xl p-8 max-w-2xl mx-auto
+           +   shadow-sm">
+       158                                    
+             @if($attendanceStatus['action'] === 'check-in')
+       159                                        <div 
+             class="text-center">
+       160 -                                          <div class="text-sm
+           -   font-semibold text-slate-600 uppercase mb-2
+           -  ">Check-In Berhasil</div>
+       161 -                                          <div class="text-
+           -  5xl font-bold text-blue-600 mb-2
+           -  ">{{ $attendanceStatus['time'] }}</div>
+       162 -                                          <div 
+           - class="inline-block px-4 py-2 rounded-lg
+       163 -                                              {{ 
+           - $attendanceStatus['status'] === 'hadir' ? 'bg-blue-100 
+           - text-blue-800' : 'bg-slate-200 text-slate-800' }}">
+       164 -                                              <span 
+           - class="font-semibold uppercase">{{ 
+           - $attendanceStatus['status'] }}</span>
+       160 +                                          <div class="text-xs
+           +   font-bold text-slate-500 uppercase tracking-widest mb-4
+           +  ">Check-In Berhasil</div>
+       161 +                                          <div class="text-
+           +  7xl font-light text-slate-900 mb-4 tracking-tight
+           +  ">{{ $attendanceStatus['time'] }}</div>
+       162 +                                          <div 
+           + class="inline-flex items-center gap-2 px-6 py-3 rounded-full
+           +  {{ $attendanceStatus['status'] === 'hadir' ? 
+           + 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 
+           + 'bg-gradient-to-r from-amber-500 to-amber-600 text-white' 
+           + }}">
+       163 +                                              <svg class="w-5
+           +  h-5" fill="currentColor" viewBox="0 0 20 20">
+       164 +                                                  <path 
+           + fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 
+           + 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 
+           + 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
+           + clip-rule="evenodd"/>
+       165 +                                              </svg>
+       166 +                                              <span 
+           + class="font-bold uppercase text-sm tracking-wide">{{ 
+           + $attendanceStatus['status'] }}</span>
+       167                                            </div>
+       168                                            
+             @if($attendanceStatus['late_minutes'] > 0)
+       169 -                                              <div 
+           -  class="text-sm text-slate-600 mt-3">
+       170 -                                                  Terlambat: 
+           - {{ $attendanceStatus['late_minutes'] }} menit
+       171 -                                              </div>
+       169 +                                              <div 
+           +  class="text-sm text-amber-700 font-medium mt-4">
+           +  Terlambat {{ $attendanceStatus['late_minutes'] }} 
+           +  menit</div>
+       170                                            @endif
+       171                                        </div>
+       172    
+       173                                    
+             @elseif($attendanceStatus['action'] === 'check-out')
+       174                                        <div 
+             class="text-center">
+       175 -                                          <div class="text-sm
+           -   font-semibold text-slate-600 uppercase mb-2">Check-Out 
+           -  Berhasil</div>
+       176 -                                          <div class="grid 
+           -  grid-cols-2 gap-4 mt-4">
+       175 +                                          <div class="text-xs
+           +   font-bold text-slate-500 uppercase tracking-widest mb-6">
+           +  Absensi Hari Ini</div>
+       176 +                                          <div class="grid 
+           +  grid-cols-2 gap-8">
+       177                                                <div>
+       178 -                                                  <div 
+           -  class="text-xs text-slate-500 mb-1">Masuk</div>
+       179 -                                                  <div 
+           -  class="text-2xl font-bold
+           -   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           -  }}</div>
+       178 +                                                  <div 
+           +  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           +  ">Check-In</div>
+       179 +                                                  <div 
+           +  class="text-4xl font-light
+           +   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           +  }}</div>
+       180                                                </div>
+       181                                                <div>
+       182 -                                                  <div 
+           -  class="text-xs text-slate-500 mb-1">Pulang</div>
+       183 -                                                  <div 
+           -  class="text-2xl font-bold text-blue-600
+           -  ">{{ $attendanceStatus['check_out_time'] }}</div>
+       182 +                                                  <div 
+           +  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           +  ">Check-Out</div>
+       183 +                                                  <div 
+           +  class="text-4xl font-light bg-gradient-to-r from-blue-600
+           +   to-blue-700 bg-clip-text text-transparent
+           +  ">{{ $attendanceStatus['check_out_time'] }}</div>
+       184                                                </div>
+       185                                            </div>
+       186                                        </div>
+       187    
+       188                                    
+             @elseif($attendanceStatus['action'] === 'waiting')
+       189                                        <div 
+             class="text-center">
+       190 -                                          <div class="text-sm
+           -   font-semibold text-slate-600 uppercase mb-2
+           -  ">Sudah Check-In</div>
+       191 -                                          <div class="text-
+           -  3xl font-bold
+           -   text-slate-900 mb-3">{{ $attendanceStatus['check_in_time']
+           -   }}</div>
+       190 +                                          <div class="text-xs
+           +   font-bold text-slate-500 uppercase tracking-widest mb-4
+           +  ">Sudah Check-In</div>
+       191 +                                          <div class="text-
+           +  5xl font-light
+           +   text-slate-900 mb-3">{{ $attendanceStatus['check_in_time']
+           +   }}</div>
+       192                                            <div class="text-sm
+              text-slate-600">Menunggu waktu check-out</div>
+       193                                        </div>
+       194    
+       195                                    
+             @elseif($attendanceStatus['action'] === 'completed')
+       196                                        <div 
+             class="text-center">
+       197 -                                          <div class="text-sm
+           -   font-semibold text-slate-600 uppercase mb-3">Absensi 
+           -  Hari Ini</div>
+       198 -                                          <div class="grid 
+           -  grid-cols-2 gap-4">
+       197 +                                          <div class="text-xs
+           +   font-bold text-slate-500 uppercase tracking-widest mb-6
+           +  ">Absensi Lengkap</div>
+       198 +                                          <div class="grid 
+           +  grid-cols-2 gap-8 mb-6">
+       199                                                <div>
+       200 -                                                  <div 
+           -  class="text-xs text-slate-500 mb-1">Check-In</div>
+       201 -                                                  <div 
+           -  class="text-xl font-bold
+           -   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           -  }}</div>
+       200 +                                                  <div 
+           +  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           +  ">Check-In</div>
+       201 +                                                  <div 
+           +  class="text-3xl font-light
+           +   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           +  }}</div>
+       202                                                </div>
+       203                                                <div>
+       204 -                                                  <div 
+           -  class="text-xs text-slate-500 mb-1">Check-Out</div>
+       205 -                                                  <div 
+           -  class="text-xl font-bold
+           -   text-slate-900">{{ $attendanceStatus['check_out_time'] 
+           -  }}</div>
+       204 +                                                  <div 
+           +  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           +  ">Check-Out</div>
+       205 +                                                  <div 
+           +  class="text-3xl font-light
+           +   text-slate-900">{{ $attendanceStatus['check_out_time'] 
+           +  }}</div>
+       206                                                </div>
+       207                                            </div>
+       208 -                                          <div class="mt-4 
+           -  inline-block px-4 py-2 bg-slate-100 text-slate-700 rounded-
+           -  lg">
+       209 -                                              <span 
+           -  class="font-semibold uppercase
+           -  ">{{ $attendanceStatus['status'] }}</span>
+       208 +                                          <div class="
+           +  inline-block px-6 py-2 bg-slate-100 text-slate-700 rounded-
+           +  full">
+       209 +                                              <span 
+           +  class="font-semibold uppercase text-sm tracking-wide
+           +  ">{{ $attendanceStatus['status'] }}</span>
+       210                                            </div>
+       211                                        </div>
+       212                                    @endif
+     ...
+       160                </div>
+       161    
+       162                <!-- Footer -->
+       163 -              <div class="bg-slate-50 border-t 
+           -  border-slate-200 px-8 py-4 text-center">
+       164 -                  <div class="flex items-center 
+           -  justify-between text-sm text-slate-600">
+       163 +              <div class="bg-slate-50 border-t 
+           +  border-slate-200 px-8 py-5">
+       164 +                  <div class="flex items-center 
+           +  justify-between text-xs text-slate-600">
+       165                        <div class="flex items-center gap-2">
+       166 -                          <div class="w-3 h-3 bg-blue-600
+           -   rounded-full animate-pulse"></div>
+       167 -                          <span>Sistem Aktif</span>
+       166 +                          <div class="w-2 h-2 bg-green-500
+           +   rounded-full animate-pulse"></div>
+       167 +                          <span class="font-medium"
+           +  >Sistem Aktif</span>
+       168                        </div>
+       169 -                      <div>
+       170 -                          <span>Jadwal Check-In: 
+           -  {{ $checkInStart }} - {{ $checkInEnd }}</span>
+       171 -                          <span class="mx-2">|</span>
+       172 -                          <span>Check-Out: 
+           -  {{ $checkOutStart }} - {{ $checkOutEnd }}</span>
+       169 +                      <div class="font-medium">
+       170 +                          <span>
+           +  {{ $checkInStart }} - {{ $checkInEnd }}</span>
+       171 +                          <span class="text-slate-400 mx-2">•
+           +  </span>
+       172 +                          <span>
+           +  {{ $checkOutStart }} - {{ $checkOutEnd }}</span>
+       173                        </div>
+       174 -                      <div>
+       175 -                          <a href="{{ route('login') }}" 
+           - class="text-blue-600 hover:text-blue-700 font-medium">Login 
+           - Admin</a>
+       176 -                      </div>
+       174 +                      <a href="{{ route('login') }}" 
+           + class="text-blue-600 hover:text-blue-700 font-semibold 
+           + transition-colors">
+       175 +                          Login Admin
+       176 +                      </a>
+       177                    </div>
+       178                </div>
+       179            </div>
+       180    
+       181 -          <!-- Info Card Below -->
+       182 -          <div class="mt-6 bg-white/10 backdrop-blur-sm 
+           - rounded-xl p-6 text-white">
+       183 -              <div class="text-center mb-4">
+       184 -                  <div class="text-sm font-semibold 
+           - opacity-90">Mode Input Tersedia:</div>
+       181 +          <!-- Info Pills -->
+       182 +          <div class="mt-8 flex items-center justify-center 
+           + gap-4 text-white/80 text-xs">
+       183 +              <div class="flex items-center gap-2 px-4 py-2 
+           + bg-white/10 backdrop-blur-sm rounded-full">
+       184 +                  <svg class="w-4 h-4" fill="currentColor" 
+           + viewBox="0 0 20 20">
+       185 +                      <path d="M2 5a2 2 0 012-2h12a2 2 0 012 
+           + 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 
+           + 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 
+           + 01-1.414-1.414L7.586 10 5.293 7.707a1 1 0 010-1.414zM11 12a1
+           +  1 0 100 2h3a1 1 0 100-2h-3z"/>
+       186 +                  </svg>
+       187 +                  <span class="font-medium">USB Reader</span>
+       188                </div>
+       189 -              <div class="grid grid-cols-3 gap-6 
+           - text-center">
+       190 -                  <div>
+       191 -                      <div class="text-3xl mb-2">🔌</div>
+       192 -                      <div class="font-semibold mb-1">USB 
+           - Reader</div>
+       193 -                      <div class="text-sm opacity-90">Scan 
+           - kartu dengan reader USB</div>
+       194 -                  </div>
+       195 -                  <div>
+       196 -                      <div class="text-3xl mb-2">📱</div>
+       197 -                      <div class="font-semibold mb-1">NFC 
+           - HP</div>
+       198 -                      <div class="text-sm opacity-90">Tap 
+           - kartu dengan HP Android</div>
+       199 -                  </div>
+       200 -                  <div>
+       201 -                      <div class="text-3xl mb-2">📡</div>
+       202 -                      <div class="font-semibold mb-1">API 
+           - Polling</div>
+       203 -                      <div class="text-sm 
+           - opacity-90">External reader via API</div>
+       204 -                  </div>
+       189 +              <div class="flex items-center gap-2 px-4 py-2 
+           + bg-white/10 backdrop-blur-sm rounded-full">
+       190 +                  <svg class="w-4 h-4" fill="currentColor" 
+           + viewBox="0 0 20 20">
+       191 +                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 
+           + 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 
+           + 11.037 0 006.105 6.105l.774-1.548a1 1 0 
+           + 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 
+           + 1h-2C7.82 18 2 12.18 2 5V3z"/>
+       192 +                  </svg>
+       193 +                  <span class="font-medium">NFC Mobile</span>
+       194                </div>
+       195 +              <div class="flex items-center gap-2 px-4 py-2 
+           + bg-white/10 backdrop-blur-sm rounded-full">
+       196 +                  <svg class="w-4 h-4" fill="currentColor" 
+           + viewBox="0 0 20 20">
+       197 +                      <path fill-rule="evenodd" d="M11.3 
+           + 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 
+           + 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" 
+           + clip-rule="evenodd"/>
+       198 +                  </svg>
+       199 +                  <span class="font-medium">API 
+           + Polling</span>
+       200 +              </div>
+       201            </div>
+       202        </div>
+       203    </div>
+       204    
+       205 +  <style>
+       206 +  @keyframes fade-in {
+       207 +      from { opacity: 0; transform: translateY(-10px); }
+       208 +      to { opacity: 1; transform: translateY(0); }
+       209 +  }
+       210 +  @keyframes slide-up {
+       211 +      from { opacity: 0; transform: translateY(20px); }
+       212 +      to { opacity: 1; transform: translateY(0); }
+       213 +  }
+       214 +  .animate-fade-in {
+       215 +      animation: fade-in 0.6s ease-out;
+       216 +  }
+       217 +  .animate-slide-up {
+       218 +      animation: slide-up 0.5s ease-out;
+       219 +  }
+       220 +  </style>
+       221 +  
+       222    @push('scripts')
+       223    <script>
+       224    function tappingStation() {
+     ...
+       217            nfcReader: null,
+       218    
+       219            init() {
+       220 -              // Update clock every second
+       221 -              setInterval(() => {
+       222 -                  this.updateClock();
+       223 -              }, 1000);
+       224 -  
+       225 -              // Start polling for cards
+       226 -              this.pollingInterval = setInterval(() => {
+       227 -                  this.pollForCard();
+       228 -              }, 500);
+       229 -  
+       230 -              // Setup USB Reader (Keyboard Emulation Mode)
+       220 +              setInterval(() => { this.updateClock(); }, 
+           + 1000);
+       221 +              this.pollingInterval = setInterval(() => { 
+           + this.pollForCard(); }, 500);
+       222                this.setupUSBReader();
+       223 -  
+       224 -              // Setup NFC HP (Web NFC API)
+       223                this.setupNFC();
+       224 -  
+       225 -              // Update time in Livewire every minute
+       226 -              setInterval(() => {
+       227 -                  @this.call('updateTime');
+       228 -              }, 60000);
+       224 +              setInterval(() => { @this.call('updateTime'); 
+           + }, 60000);
+       225            },
+       226    
+       227            updateClock() {
+     ...
+       253                try {
+       254                    const response = await fetch(this.apiUrl);
+       255                    if (!response.ok) return;
+       256 -  
+       256                    const data = await response.json();
+       257                    if (data.success && data.card_uid && 
+             data.card_uid !== this.lastCardUid) {
+       258                        this.processCardUID(data.card_uid);
+       259                    }
+       260 -              } catch (error) {
+       261 -                  // Silent fail
+       262 -              }
+       260 +              } catch (error) {}
+       261            },
+       262    
+       263            setupUSBReader() {
+       264                document.addEventListener('keypress', (e) => {
+       265 -                  if (e.target.tagName === 'INPUT' || 
+           -  e.target.tagName === 'TEXTAREA') {
+       266 -                      return;
+       267 -                  }
+       268 -  
+       265 +                  if (e.target.tagName === 'INPUT' || 
+           +  e.target.tagName === 'TEXTAREA') return;
+       266                    if (e.key === 'Enter') {
+       267                        if (this.cardBuffer.length > 0) {
+       268                            
+             this.processCardUID(this.cardBuffer);
+     ...
+       296                        
+             this.nfcReader.addEventListener('reading', ({ serialNumber 
+             }) => {
+       297                            this.processCardUID(serialNumber);
+       298                        });
+       299 -                  } catch (error) {
+       300 -                      // Silent fail
+       301 -                  }
+       299 +                  } catch (error) {}
+       300                }
+       301            },
+       302    
+       303            processCardUID(cardUid) {
+       304                if (cardUid === this.lastCardUid) return;
+       305 -  
+       305                this.lastCardUid = cardUid;
+       306                @this.call('processCard', cardUid);
+       307 -  
+       308 -              setTimeout(() => {
+       309 -                  this.lastCardUid = null;
+       310 -              }, 3000);
+       307 +              setTimeout(() => { this.lastCardUid = null; }, 
+           + 3000);
+       308            }
+       309        }
+       310    }
+
+● Sekarang update background layout menjadi lebih profesional:
+
+● Update(resources\views\layouts\tapping.blade.php)
+  ⎿  Updated resources\views\layouts\tapping.blade.php with 14 additions an
+      1 removal
+       16    
+       17        <style>
+       18            body {
+       19 -              background: linear-gradient(135deg, #667eea
+          -   0%, #764ba2 100%);
+       19 +              background: linear-gradient(135deg, #1e293b
+          +   0%, #334155 50%, #475569 100%);
+       20                min-height: 100vh;
+       21 +              position: relative;
+       22            }
+       23 +          body::before {
+       24 +              content: '';
+       25 +              position: absolute;
+       26 +              top: 0;
+       27 +              left: 0;
+       28 +              right: 0;
+       29 +              bottom: 0;
+       30 +              background-image:
+       31 +                  radial-gradient(circle at 20% 50%, rgba(59, 
+          + 130, 246, 0.1) 0%, transparent 50%),
+       32 +                  radial-gradient(circle at 80% 80%, rgba(139,
+          +  92, 246, 0.1) 0%, transparent 50%);
+       33 +              pointer-events: none;
+       34 +          }
+       35        </style>
+       36    </head>
+       37    <body class="font-sans antialiased">
+
+● Perfect! ✨ Tapping Station UI telah di-redesign menjadi lebih profesional, minimalis, dan elegant.
+
+  🎨 Perubahan Utama
+
+  1. Design System Baru
+
+  - ✅ Warna modern: Slate gray + Blue accents
+  - ✅ Gradient profesional background
+  - ✅ Typography yang clean dan readable
+  - ✅ Spacing yang konsisten
+  - ✅ Border radius yang smooth (rounded-2xl, rounded-3xl)
+
+  2. Animations & Transitions
+
+  - ✅ Fade-in animation untuk header
+  - ✅ Slide-up animation untuk student info
+  - ✅ Hover scale effect pada statistics
+  - ✅ Smooth transitions everywhere
+
+  3. Visual Improvements
+
+  - ✅ Larger, lighter font untuk waktu (text-6xl font-light)
+  - ✅ Gradient text untuk angka statistik
+  - ✅ Photo dengan glow effect (blur shadow)
+  - ✅ Professional icons (no emojis)
+  - ✅ Better status indicators (circular badges)
+  - ✅ Info pills di bottom (USB/NFC/API)
+
+  4. Code Cleanup
+
+  - ✅ Semua console.log di-remove
+  - ✅ Silent error handling
+  - ✅ Clean, compact JavaScript
+  - ✅ No debug noise
+
+  5. UX Enhancements
+
+  - ✅ Animated waiting state dengan ping effect
+  - ✅ Clear visual hierarchy
+  - ✅ Better error/success messaging
+  - ✅ Professional color coding (blue=success, red=error, amber=late)
+  - ✅ Smooth state transitions
+
+  ---
+  🚀 Test Sekarang
+
+  Refresh browser (Ctrl+Shift+R) dan lihat tampilan baru yang lebih profesional!
+
+  Fitur yang sudah terintegrasi:
+  - ✅ USB RFID Reader (auto-detect doubled digits)
+  - ✅ NFC Mobile (Web NFC API)
+  - ✅ API Polling (untuk external readers)
+  - ✅ Real-time clock update
+  - ✅ Auto-clear setelah 5 detik
+  - ✅ Sound feedback
+  - ✅ Statistics hari ini
+
+  Silakan test scan kartu dan kasih feedback tentang tampilan barunya! 🎯
+
+> Livewire\Features\SupportMultipleRootElementDetection\MultipleRootElements
+DetectedException
+vendor\livewire\livewire\src\Features\SupportMultipleRootElementDetection\Su
+pportMultipleRootElementDetection.php:27
+Livewire only supports one HTML element per component. Multiple root 
+elements detected for component: [public.tapping-station] 
+
+● Error Livewire! Komponen harus punya 1 root element saja. Kita punya <div> utama + <style> tag yang dianggap sebagai 2 root elements.
+
+  Mari fix dengan memindahkan <style> ke dalam @push:
+
+● Update(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Updated resources\views\livewire\public\tapping-station.blade.php with
+     2 additions
+
+       259        </div>
+       260    </div>
+       261    
+       262 +  @push('styles')
+       263    <style>
+       264    @keyframes fade-in {
+       265        from { opacity: 0; transform: translateY(-10px); }
+     ...
+       275        animation: slide-up 0.5s ease-out;
+       276    }
+       277    </style>
+       278 +  @endpush
+       279    
+       280    @push('scripts')
+       281    <script>
+
+● Sekarang tambahkan stack untuk styles di layout:
+
+● Update(resources\views\layouts\tapping.blade.php)
+  ⎿  Updated resources\views\layouts\tapping.blade.php with 2 additions  
+       14        @vite(['resources/css/app.css', 'resources/js/app.js'])
+       15        @livewireStyles
+       16    
+       17 +      @stack('styles')
+       18 +  
+       19        <style>
+       20            body {
+       21                background: linear-gradient(135deg, #1e293b 0%, 
+            #334155 50%, #475569 100%);
+
+● Perfect! Error sudah di-fix. Sekarang:
+
+  ✅ Livewire component hanya punya 1 root element (main <div>)
+  ✅ Styles dipindah ke @push('styles') dan di-render di <head> via @stack('styles')
+  ✅ Scripts tetap di @push('scripts') seperti biasa
+
+  Refresh browser sekarang dan halaman tapping station akan muncul dengan tampilan baru yang profesional! 🎯
+
+> buat halaman yang clean sesuai dengan tema dashboard admin, ketika 
+berhasil tapping refres otomatis agar dapat tapping lagi. belum muncul 
+notifikasi kartu tidak ada di database 
+
+● Baik, saya akan redesign menjadi lebih clean dan sesuai tema dashboard admin, dengan auto-refresh dan notifikasi error yang jelas:
+
+● Write(resources\views\livewire\public\tapping-station.blade.php)
+  ⎿  Updated resources\views\livewire\public\tapping-station.blade.php with
+     81 additions and 166 removals
+
+         1    <div class="min-h-screen flex items-center justify-center 
+             p-6" x-data="tappingStation()" x-init="init()">
+         2 -      <div class="w-full max-w-5xl">
+         2 +      <div class="w-full max-w-4xl">
+         3    
+         4            <!-- Header -->
+         5 -          <div class="text-center mb-10 animate-fade-in">
+         6 -              <div class="inline-flex items-center gap-3 
+           - mb-4">
+         7 -                  <div class="w-12 h-12 bg-white/20 
+           - backdrop-blur-sm rounded-xl flex items-center 
+           - justify-center">
+         8 -                      <svg class="w-7 h-7 text-white" 
+           - fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         9 -                          <path stroke-linecap="round" 
+           - stroke-linejoin="round" stroke-width="2.5" d="M12 11c0 
+           - 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 
+           - 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 
+           - 6.844A21.88 21.88 0 0015.171 17m3.839 
+           - 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 
+           - 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+        10 -                      </svg>
+        11 -                  </div>
+        12 -                  <h1 class="text-3xl font-semibold 
+           - text-white tracking-tight">{{ config('app.name') }}</h1>
+        13 -              </div>
+        14 -              <p class="text-white/80 text-sm font-medium 
+           - tracking-wide uppercase">Sistem Absensi Digital</p>
+         5 +          <div class="text-center mb-8">
+         6 +              <h1 class="text-2xl font-semibold text-white 
+           + mb-1">{{ config('app.name') }}</h1>
+         7 +              <p class="text-white/70 text-sm">Sistem Absensi
+           +  Digital</p>
+         8            </div>
+         9    
+        10            <!-- Main Card -->
+        11 -          <div class="bg-white rounded-3xl shadow-2xl
+           -   overflow-hidden transition-all duration-500">
+        11 +          <div class="bg-white rounded-2xl shadow-xl
+           +   overflow-hidden">
+        12    
+        13                <!-- Time Display -->
+        14 -              <div class="relative bg-gradient-to-br
+           -   from-slate-900 via-slate-800 to-slate-900 text-white px-8
+           -   py-10 text-center">
+        15 -                  <div class="absolute inset-0 
+           - bg-gradient-to-br from-blue-600/10 to-purple-600/10"></div>
+        16 -                  <div class="relative">
+        17 -                      <div class="text-6xl font-light mb-2 
+           - tracking-wider" x-text="currentTime">{{ $currentTime 
+           - }}</div>
+        18 -                      <div class="text-sm font-medium 
+           - text-white/70 uppercase tracking-widest">{{ $currentDate 
+           - }}</div>
+        19 -                  </div>
+        14 +              <div class="bg-gradient-to-r from-slate-
+           +  800 to-slate-700 text-white px-6 py-8 text-center">
+        15 +                  <div class="text-5xl font-bold mb-1" 
+           + x-text="currentTime">{{ $currentTime }}</div>
+        16 +                  <div class="text-sm text-white/80">{{ 
+           + $currentDate }}</div>
+        17                </div>
+        18    
+        19                <!-- Content Area -->
+        20 -              <div class="p-10">
+        20 +              <div class="p-8">
+        21                    @if(!$studentData)
+        22                        <!-- Waiting State -->
+        23 -                      <div class="text-center py-
+           -  16 transition-all duration-500">
+        24 -  
+        25 -                          <!-- Animated Icon -->
+        26 -                          <div class="relative inline-block 
+           - mb-8">
+        27 -                              <div class="absolute inset-0 
+           - bg-blue-100 rounded-full animate-ping opacity-20"></div>
+        28 -                              <div class="relative w-28 h-28 
+           - bg-gradient-to-br from-blue-50 to-slate-50 rounded-full flex
+           -  items-center justify-center border border-slate-200">
+        29 -                                  <svg class="w-14 h-14 
+           - text-blue-600" fill="none" stroke="currentColor" viewBox="0 
+           - 0 24 24">
+        30 -                                      <path 
+           - stroke-linecap="round" stroke-linejoin="round" 
+           - stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 
+           - 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 
+           - 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 
+           - 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 
+           - 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 
+           - 1.07-4"/>
+        31 -                                  </svg>
+        32 -                              </div>
+        23 +                      <div class="text-center py-12">
+        24 +                          <!-- Icon -->
+        25 +                          <div class="inline-flex 
+           + items-center justify-center w-24 h-24 bg-blue-50 
+           + rounded-full mb-6">
+        26 +                              <svg class="w-12 h-12 
+           + text-blue-600 animate-pulse" fill="none" 
+           + stroke="currentColor" viewBox="0 0 24 24">
+        27 +                                  <path 
+           + stroke-linecap="round" stroke-linejoin="round" 
+           + stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 
+           + 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 
+           + 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 
+           + 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 
+           + 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 
+           + 1.07-4"/>
+        28 +                              </svg>
+        29                            </div>
+        30    
+        31 -                          <h2 class="text-2xl
+           -   font-semibold text-slate-900 mb-2">Siap Melayani</h2>
+        32 -                          <p class="text-slate-500
+           -   text-base max-w-md mx-auto">Silakan tempelkan 
+           -  kartu MIFARE Anda pada reader</p>
+        31 +                          <h2 class="text-xl
+           +   font-semibold text-slate-900 mb-2">Silakan Tap Kartu Anda
+           +  </h2>
+        32 +                          <p class="text-slate-500">Tempelkan
+           +   kartu MIFARE pada reader</p>
+        33    
+        34                            <!-- Statistics -->
+        35 -                          <div class="grid grid-cols-3 gap-6
+           -   mt-16 max-w-3xl mx-auto">
+        36 -                              <div class="group 
+           - hover:scale-105 transition-transform duration-300">
+        37 -                                  <div 
+           - class="bg-gradient-to-br from-slate-50 to-white border 
+           - border-slate-200 rounded-2xl p-6 shadow-sm">
+        38 -                                      <div class="text-4xl 
+           - font-bold bg-gradient-to-br from-slate-700 to-slate-900 
+           - bg-clip-text text-transparent">
+        39 -                                          {{ 
+           - number_format($todayStats['total_present']) }}
+        40 -                                      </div>
+        41 -                                      <div class="text-sm 
+           - font-medium text-slate-600 mt-2 uppercase 
+           - tracking-wide">Hadir Hari Ini</div>
+        42 -                                  </div>
+        35 +                          <div class="grid grid-cols-3 gap-4
+           +   mt-10 max-w-2xl mx-auto">
+        36 +                              <div class="bg-slate-50 
+           + rounded-xl p-4 border border-slate-200">
+        37 +                                  <div class="text-3xl 
+           + font-bold text-slate-900">{{ 
+           + number_format($todayStats['total_present']) }}</div>
+        38 +                                  <div class="text-xs 
+           + text-slate-600 mt-1 font-medium">Hadir Hari Ini</div>
+        39                                </div>
+        40 -                              <div class="group 
+           - hover:scale-105 transition-transform duration-300">
+        41 -                                  <div 
+           - class="bg-gradient-to-br from-blue-50 to-white border 
+           - border-blue-200 rounded-2xl p-6 shadow-sm">
+        42 -                                      <div class="text-4xl 
+           - font-bold bg-gradient-to-br from-blue-600 to-blue-700 
+           - bg-clip-text text-transparent">
+        43 -                                          {{ 
+           - number_format($todayStats['on_time']) }}
+        44 -                                      </div>
+        45 -                                      <div class="text-sm 
+           - font-medium text-blue-700 mt-2 uppercase 
+           - tracking-wide">Tepat Waktu</div>
+        46 -                                  </div>
+        40 +                              <div class="bg-blue-50 
+           + rounded-xl p-4 border border-blue-200">
+        41 +                                  <div class="text-3xl 
+           + font-bold text-blue-600">{{ 
+           + number_format($todayStats['on_time']) }}</div>
+        42 +                                  <div class="text-xs 
+           + text-blue-700 mt-1 font-medium">Tepat Waktu</div>
+        43                                </div>
+        44 -                              <div class="group 
+           - hover:scale-105 transition-transform duration-300">
+        45 -                                  <div 
+           - class="bg-gradient-to-br from-amber-50 to-white border 
+           - border-amber-200 rounded-2xl p-6 shadow-sm">
+        46 -                                      <div class="text-4xl 
+           - font-bold bg-gradient-to-br from-amber-600 to-amber-700 
+           - bg-clip-text text-transparent">
+        47 -                                          {{ 
+           - number_format($todayStats['late']) }}
+        48 -                                      </div>
+        49 -                                      <div class="text-sm 
+           - font-medium text-amber-700 mt-2 uppercase 
+           - tracking-wide">Terlambat</div>
+        50 -                                  </div>
+        44 +                              <div class="bg-amber-50 
+           + rounded-xl p-4 border border-amber-200">
+        45 +                                  <div class="text-3xl 
+           + font-bold text-amber-600">{{ 
+           + number_format($todayStats['late']) }}</div>
+        46 +                                  <div class="text-xs 
+           + text-amber-700 mt-1 font-medium">Terlambat</div>
+        47                                </div>
+        48                            </div>
+        49                        </div>
+        50                    @else
+        51                        <!-- Student Info Display -->
+        52 -                      <div class="text-center
+           -   animate-slide-up">
+        52 +                      <div class="text-center">
+        53    
+        54                            <!-- Student Photo -->
+        55 -                          <div class="inline-block mb-8">
+        55 +                          <div class="inline-block mb-6">
+        56                                @if($studentData['photo'])
+        57 -                                  <div class="relative">
+        58 -                                      <div class="absolute 
+           - inset-0 bg-gradient-to-br from-blue-400 to-purple-400 
+           - rounded-full blur-xl opacity-30"></div>
+        59 -                                      <img src="{{ 
+           - $studentData['photo'] }}" alt="{{ $studentData['name'] }}" 
+           - class="relative w-36 h-36 rounded-full border-4 border-white
+           -  shadow-2xl object-cover">
+        60 -                                  </div>
+        57 +                                  <img src="{{ 
+           + $studentData['photo'] }}" alt="{{ $studentData['name'] }}" 
+           + class="w-32 h-32 rounded-full border-4 border-blue-500 
+           + shadow-lg object-cover">
+        58                                @else
+        59 -                                  <div class="relative">
+        60 -                                      <div class="absolute 
+           - inset-0 bg-gradient-to-br from-blue-400 to-purple-400 
+           - rounded-full blur-xl opacity-30"></div>
+        61 -                                      <div class="relative 
+           - w-36 h-36 rounded-full border-4 border-white shadow-2xl 
+           - bg-gradient-to-br from-blue-500 to-blue-600 flex 
+           - items-center justify-center">
+        62 -                                          <span 
+           - class="text-5xl font-bold text-white">{{ 
+           - substr($studentData['name'], 0, 1) }}</span>
+        63 -                                      </div>
+        59 +                                  <div class="w-32 h-32 
+           + rounded-full border-4 border-blue-500 shadow-lg 
+           + bg-gradient-to-br from-blue-500 to-blue-600 flex 
+           + items-center justify-center">
+        60 +                                      <span class="text-5xl 
+           + font-bold text-white">{{ substr($studentData['name'], 0, 1) 
+           + }}</span>
+        61                                    </div>
+        62                                @endif
+        63                            </div>
+        64    
+        65 -                          <!-- Student Details -->
+        66 -                          <h2 class="text-3xl
+           -   font-bold text-slate-900 mb-3
+           -  ">{{ $studentData['name'] }}</h2>
+        67 -                          <div class="flex items-center 
+           -  justify-center gap-4 text-slate-600 mb-8">
+        68 -                              <div class="flex items-center 
+           - gap-2">
+        69 -                                  <svg class="w-4 h-4 
+           - text-slate-400" fill="none" stroke="currentColor" viewBox="0
+           -  0 24 24">
+        70 -                                      <path 
+           - stroke-linecap="round" stroke-linejoin="round" 
+           - stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 
+           - 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 
+           - 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 
+           - 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+        71 -                                  </svg>
+        72 -                                  <span 
+           - class="font-medium">{{ $studentData['nis'] }}</span>
+        73 -                              </div>
+        74 -                              <span 
+           - class="text-slate-300">•</span>
+        75 -                              <div class="flex items-center 
+           - gap-2">
+        76 -                                  <svg class="w-4 h-4 
+           - text-slate-400" fill="none" stroke="currentColor" viewBox="0
+           -  0 24 24">
+        77 -                                      <path 
+           - stroke-linecap="round" stroke-linejoin="round" 
+           - stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 
+           - 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 
+           - 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        78 -                                  </svg>
+        79 -                                  <span 
+           - class="font-medium">{{ $studentData['class'] }}</span>
+        80 -                              </div>
+        65 +                          <!-- Student Info -->
+        66 +                          <h2 class="text-2xl
+           +   font-bold text-slate-900 mb-2
+           +  ">{{ $studentData['name'] }}</h2>
+        67 +                          <div class="text-sm 
+           +  text-slate-600 mb-6">
+        68 +                              NIS: {{ $studentData['nis'] }} 
+           + • {{ $studentData['class'] }}
+        69                            </div>
+        70    
+        71                            <!-- Status Message -->
+        72                            @if($message)
+        73 -                              <div class="mb-8 max-w-xl
+           -   mx-auto">
+        73 +                              <div class="mb-6 max-w-lg
+           +   mx-auto">
+        74                                    @if($messageType === 
+             'success')
+        75 -                                      <div class="bg-
+           -  gradient-to-r from-blue-50 to-blue-50/50 
+           -  border-2 border-blue-200 rounded-2xl p-5 shadow-sm">
+        75 +                                      <div class="bg-blue-50 
+           +  border-2 border-blue-500 rounded-xl p-4">
+        76                                            <div class="flex 
+             items-center justify-center gap-3">
+        77 -                                              <div class="w-
+           -  10 h-10
+           -   bg-blue-500 rounded-full flex items-center justify-center 
+           -  flex-shrink-0">
+        78 -                                                  <svg 
+           -  class="w-6 h-6
+           -   text-white" fill="none" stroke="currentColor" viewBox="0 0
+           -   24 24">
+        77 +                                              <div class="w-8
+           +   h-8
+           +   bg-blue-500 rounded-full flex items-center justify-center 
+           +  flex-shrink-0">
+        78 +                                                  <svg 
+           +  class="w-5 h-5
+           +   text-white" fill="none" stroke="currentColor" viewBox="0 0
+           +   24 24">
+        79                                                        <path 
+             stroke-linecap="round" stroke-linejoin="round" 
+             stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        80                                                    </svg>
+        81                                                </div>
+        82 -                                              <span 
+           -  class="text-lg
+           -   font-semibold text-blue-900">{{ $message }}</span>
+        82 +                                              <span 
+           +  class="text-base
+           +   font-semibold text-blue-900">{{ $message }}</span>
+        83                                            </div>
+        84                                        </div>
+        85                                    @elseif($messageType === 
+             'error')
+        86 -                                      <div class="bg-
+           -  gradient-to-r from-red-50 to-red-50/50 border-2 border-red-
+           -  200 rounded-2xl p-5 shadow-sm">
+        86 +                                      <div class="bg-red-50 
+           +  border-2 border-red-500 rounded-xl p-4">
+        87                                            <div class="flex 
+             items-center justify-center gap-3">
+        88 -                                              <div class="w-
+           -  10 h-10
+           -   bg-red-500 rounded-full flex items-center justify-center 
+           -  flex-shrink-0">
+        89 -                                                  <svg 
+           -  class="w-6 h-6
+           -   text-white" fill="none" stroke="currentColor" viewBox="0 0
+           -   24 24">
+        88 +                                              <div class="w-8
+           +   h-8
+           +   bg-red-500 rounded-full flex items-center justify-center 
+           +  flex-shrink-0">
+        89 +                                                  <svg 
+           +  class="w-5 h-5
+           +   text-white" fill="none" stroke="currentColor" viewBox="0 0
+           +   24 24">
+        90                                                        <path 
+             stroke-linecap="round" stroke-linejoin="round" 
+             stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+        91                                                    </svg>
+        92                                                </div>
+        93 -                                              <span 
+           -  class="text-lg
+           -   font-semibold text-red-900">{{ $message }}</span>
+        93 +                                              <span 
+           +  class="text-base
+           +   font-semibold text-red-900">{{ $message }}</span>
+        94                                            </div>
+        95                                        </div>
+        96                                    @else
+        97 -                                      <div class="bg-
+           -  gradient-to-r from-slate-50 to-slate-50/50 
+           -  border-2 border-slate-200 rounded-2xl p-5 shadow-sm">
+        97 +                                      <div class="bg-
+           +  slate-50 border-2 border-slate-400 rounded-xl p-4">
+        98                                            <div class="flex 
+             items-center justify-center gap-3">
+        99 -                                              <div class="w-
+           -  10 h-10
+           -   bg-slate-500 rounded-full flex items-center justify-center
+           -   flex-shrink-0">
+       100 -                                                  <svg 
+           -  class="w-6 h-6
+           -   text-white" fill="none" stroke="currentColor" viewBox="0 0
+           -   24 24">
+        99 +                                              <div class="w-8
+           +   h-8
+           +   bg-slate-500 rounded-full flex items-center justify-center
+           +   flex-shrink-0">
+       100 +                                                  <svg 
+           +  class="w-5 h-5
+           +   text-white" fill="none" stroke="currentColor" viewBox="0 0
+           +   24 24">
+       101                                                        <path 
+             stroke-linecap="round" stroke-linejoin="round" 
+             stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 
+             11-18 0 9 9 0 0118 0z"/>
+       102                                                    </svg>
+       103                                                </div>
+       104 -                                              <span 
+           -  class="text-lg
+           -   font-semibold text-slate-900">{{ $message }}</span>
+       104 +                                              <span 
+           +  class="text-base
+           +   font-semibold text-slate-900">{{ $message }}</span>
+       105                                            </div>
+       106                                        </div>
+       107                                    @endif
+     ...
+       154    
+       155                            <!-- Attendance Details -->
+       156                            @if($attendanceStatus)
+       157 -                              <div class="bg-
+           -  gradient-to-br from-slate-50 to-white 
+           -  border border-slate-200 rounded-2xl p-8 max-w-2xl mx-auto
+           -   shadow-sm">
+       157 +                              <div class="bg-slate-50 
+           +  border border-slate-200 rounded-xl p-6 max-w-lg mx-auto">
+       158                                    
+             @if($attendanceStatus['action'] === 'check-in')
+       159                                        <div 
+             class="text-center">
+       160 -                                          <div class="text-xs
+           -   font-bold text-slate-500 uppercase tracking-widest mb-4
+           -  ">Check-In Berhasil</div>
+       161 -                                          <div class="text-
+           -  7xl font-light text-slate-900 mb-4 tracking-tight
+           -  ">{{ $attendanceStatus['time'] }}</div>
+       162 -                                          <div 
+           -  class="inline-flex items-center gap-2 px-6 py-3
+           -   rounded-full {{ $attendanceStatus['status'] === 'hadir' ? 
+           -  'bg-gradient-to-r from-blue-500 to-blue-600 
+           -  text-white' : 'bg-gradient-to-r from-amber-500 
+           -  to-amber-600 text-white' }}">
+       163 -                                              <svg class="w-5
+           -   h-5" fill="currentColor" viewBox="0 0 20 20">
+       160 +                                          <div class="text-xs
+           +   text-slate-500 uppercase tracking-wider mb-3 font-semibold
+           +  ">Check-In Berhasil</div>
+       161 +                                          <div class="text-
+           +  6xl font-bold text-slate-900 mb-4
+           +  ">{{ $attendanceStatus['time'] }}</div>
+       162 +                                          <div 
+           +  class="inline-flex items-center gap-2 px-5 py-2
+           +   rounded-full {{ $attendanceStatus['status'] === 'hadir' ? 
+           +  'bg-blue-500 text-white' : 'bg-amber-500 text-white' }}">
+       163 +                                              <svg class="w-4
+           +   h-4" fill="currentColor" viewBox="0 0 20 20">
+       164                                                    <path 
+             fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 
+             16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 
+             1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
+             clip-rule="evenodd"/>
+       165                                                </svg>
+       166 -                                              <span 
+           -  class="font-bold uppercase text-sm tracking-wide
+           -  ">{{ $attendanceStatus['status'] }}</span>
+       166 +                                              <span 
+           +  class="font-bold uppercase text-sm
+           +  ">{{ $attendanceStatus['status'] }}</span>
+       167                                            </div>
+       168                                            
+             @if($attendanceStatus['late_minutes'] > 0)
+       169 -                                              <div 
+           -  class="text-sm text-amber-700 font-medium mt-4
+           -  ">Terlambat {{ $attendanceStatus['late_minutes'] }} 
+           -  menit</div>
+       169 +                                              <div 
+           +  class="text-sm text-amber-700 font-medium mt-3
+           +  ">Terlambat {{ $attendanceStatus['late_minutes'] }} 
+           +  menit</div>
+       170                                            @endif
+       171                                        </div>
+       172    
+       173                                    
+             @elseif($attendanceStatus['action'] === 'check-out')
+       174                                        <div 
+             class="text-center">
+       175 -                                          <div class="text-xs
+           -   font-bold text-slate-500 uppercase tracking-widest mb-6">
+           -  Absensi Hari Ini</div>
+       176 -                                          <div class="grid 
+           -  grid-cols-2 gap-8">
+       175 +                                          <div class="text-xs
+           +   text-slate-500 uppercase tracking-wider mb-4 font-semibold
+           +  ">Check-Out Berhasil</div>
+       176 +                                          <div class="grid 
+           +  grid-cols-2 gap-6">
+       177                                                <div>
+       178 -                                                  <div 
+           -  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           -  ">Check-In</div>
+       179 -                                                  <div 
+           -  class="text-4xl font-light
+           -   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           -  }}</div>
+       178 +                                                  <div 
+           +  class="text-xs text-slate-500 mb-1">Check-In</div>
+       179 +                                                  <div 
+           +  class="text-3xl font-bold
+           +   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           +  }}</div>
+       180                                                </div>
+       181                                                <div>
+       182 -                                                  <div 
+           -  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           -  ">Check-Out</div>
+       183 -                                                  <div 
+           -  class="text-4xl font-light bg-gradient-to-r from-blue-600
+           -   to-blue-700 bg-clip-text text-transparent
+           -  ">{{ $attendanceStatus['check_out_time'] }}</div>
+       182 +                                                  <div 
+           +  class="text-xs text-slate-500 mb-1">Check-Out</div>
+       183 +                                                  <div 
+           +  class="text-3xl font-bold text-blue-600
+           +  ">{{ $attendanceStatus['check_out_time'] }}</div>
+       184                                                </div>
+       185                                            </div>
+       186                                        </div>
+       187    
+       188                                    
+             @elseif($attendanceStatus['action'] === 'waiting')
+       189                                        <div 
+             class="text-center">
+       190 -                                          <div class="text-xs
+           -   font-bold text-slate-500 uppercase tracking-widest mb-4
+           -  ">Sudah Check-In</div>
+       191 -                                          <div class="text-
+           -  5xl font-light text-slate-900 mb-3
+           -  ">{{ $attendanceStatus['check_in_time'] }}</div>
+       190 +                                          <div class="text-xs
+           +   text-slate-500 uppercase tracking-wider mb-3 font-semibold
+           +  ">Sudah Check-In</div>
+       191 +                                          <div class="text-
+           +  4xl font-bold text-slate-900 mb-2
+           +  ">{{ $attendanceStatus['check_in_time'] }}</div>
+       192                                            <div class="text-sm
+              text-slate-600">Menunggu waktu check-out</div>
+       193                                        </div>
+       194    
+       195                                    
+             @elseif($attendanceStatus['action'] === 'completed')
+       196                                        <div 
+             class="text-center">
+       197 -                                          <div class="text-xs
+           -   font-bold text-slate-500 uppercase tracking-widest mb-6
+           -  ">Absensi Lengkap</div>
+       198 -                                          <div class="grid 
+           -  grid-cols-2 gap-8 mb-6">
+       197 +                                          <div class="text-xs
+           +   text-slate-500 uppercase tracking-wider mb-4 font-semibold
+           +  ">Absensi Lengkap</div>
+       198 +                                          <div class="grid 
+           +  grid-cols-2 gap-6 mb-4">
+       199                                                <div>
+       200 -                                                  <div 
+           -  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           -  ">Check-In</div>
+       201 -                                                  <div 
+           -  class="text-3xl font-light
+           -   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           -  }}</div>
+       200 +                                                  <div 
+           +  class="text-xs text-slate-500 mb-1">Check-In</div>
+       201 +                                                  <div 
+           +  class="text-2xl font-bold
+           +   text-slate-900">{{ $attendanceStatus['check_in_time'] 
+           +  }}</div>
+       202                                                </div>
+       203                                                <div>
+       204 -                                                  <div 
+           -  class="text-xs text-slate-500 uppercase tracking-wider mb-2
+           -  ">Check-Out</div>
+       205 -                                                  <div 
+           -  class="text-3xl font-light
+           -   text-slate-900">{{ $attendanceStatus['check_out_time'] 
+           -  }}</div>
+       204 +                                                  <div 
+           +  class="text-xs text-slate-500 mb-1">Check-Out</div>
+       205 +                                                  <div 
+           +  class="text-2xl font-bold
+           +   text-slate-900">{{ $attendanceStatus['check_out_time'] 
+           +  }}</div>
+       206                                                </div>
+       207                                            </div>
+       208 -                                          <div 
+           -  class="inline-block px-6 py-2 bg-slate-100
+           -   text-slate-700 rounded-full">
+       209 -                                              <span 
+           -  class="font-semibold uppercase text-sm tracking-wide
+           -  ">{{ $attendanceStatus['status'] }}</span>
+       208 +                                          <div 
+           +  class="inline-block px-5 py-2 bg-slate-200
+           +   text-slate-700 rounded-full">
+       209 +                                              <span 
+           +  class="font-semibold uppercase text-sm
+           +  ">{{ $attendanceStatus['status'] }}</span>
+       210                                            </div>
+       211                                        </div>
+       212                                    @endif
+     ...
+       217                </div>
+       218    
+       219                <!-- Footer -->
+       220 -              <div class="bg-slate-50 border-t 
+           -  border-slate-200 px-8 py-5">
+       220 +              <div class="bg-slate-50 border-t 
+           +  border-slate-200 px-6 py-4">
+       221                    <div class="flex items-center 
+             justify-between text-xs text-slate-600">
+       222                        <div class="flex items-center gap-2">
+       223 -                          <div class="w-2 h-2 bg-green-500 
+           -  rounded-full animate-pulse"></div>
+       224 -                          <span class="font-medium"
+           -  >Sistem Aktif</span>
+       223 +                          <div class="w-2 h-2 bg-green-500 
+           +  rounded-full"></div>
+       224 +                          <span>Sistem Aktif</span>
+       225                        </div>
+       226 -                      <div class="font-medium">
+       227 -                          <span>
+           -  {{ $checkInStart }} - {{ $checkInEnd }}</span>
+       228 -                          <span class="text-slate-400 mx-2">•
+           -  </span>
+       229 -                          <span>
+           -  {{ $checkOutStart }} - {{ $checkOutEnd }}</span>
+       226 +                      <div>
+       227 +                          <span>Check-In: 
+           +  {{ $checkInStart }} - {{ $checkInEnd }}</span>
+       228 +                          <span class="text-slate-400 mx-2">|
+           +  </span>
+       229 +                          <span>Check-Out: 
+           +  {{ $checkOutStart }} - {{ $checkOutEnd }}</span>
+       230                        </div>
+       231 -                      <a href="{{ route('login') }}" 
+           -  class="text-blue-600 hover:text-blue-700 font-
+           -  semibold transition-colors">
+       232 -                          Login Admin
+       231 +                      <a href="{{ route('login') }}" 
+           +  class="text-blue-600 hover:text-blue-700 font-medium">
+       232 +                          Admin
+       233                        </a>
+       234                    </div>
+       235                </div>
+       236            </div>
+       237 -  
+       238 -          <!-- Info Pills -->
+       239 -          <div class="mt-8 flex items-center justify-center 
+           - gap-4 text-white/80 text-xs">
+       240 -              <div class="flex items-center gap-2 px-4 py-2 
+           - bg-white/10 backdrop-blur-sm rounded-full">
+       241 -                  <svg class="w-4 h-4" fill="currentColor" 
+           - viewBox="0 0 20 20">
+       242 -                      <path d="M2 5a2 2 0 012-2h12a2 2 0 012 
+           - 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 
+           - 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 
+           - 01-1.414-1.414L7.586 10 5.293 7.707a1 1 0 010-1.414zM11 12a1
+           -  1 0 100 2h3a1 1 0 100-2h-3z"/>
+       243 -                  </svg>
+       244 -                  <span class="font-medium">USB Reader</span>
+       245 -              </div>
+       246 -              <div class="flex items-center gap-2 px-4 py-2 
+           - bg-white/10 backdrop-blur-sm rounded-full">
+       247 -                  <svg class="w-4 h-4" fill="currentColor" 
+           - viewBox="0 0 20 20">
+       248 -                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 
+           - 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 
+           - 11.037 0 006.105 6.105l.774-1.548a1 1 0 
+           - 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 
+           - 1h-2C7.82 18 2 12.18 2 5V3z"/>
+       249 -                  </svg>
+       250 -                  <span class="font-medium">NFC Mobile</span>
+       251 -              </div>
+       252 -              <div class="flex items-center gap-2 px-4 py-2 
+           - bg-white/10 backdrop-blur-sm rounded-full">
+       253 -                  <svg class="w-4 h-4" fill="currentColor" 
+           - viewBox="0 0 20 20">
+       254 -                      <path fill-rule="evenodd" d="M11.3 
+           - 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 
+           - 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" 
+           - clip-rule="evenodd"/>
+       255 -                  </svg>
+       256 -                  <span class="font-medium">API 
+           - Polling</span>
+       257 -              </div>
+       258 -          </div>
+       237        </div>
+       238    </div>
+       239    
+       240 -  @push('styles')
+       241 -  <style>
+       242 -  @keyframes fade-in {
+       243 -      from { opacity: 0; transform: translateY(-10px); }
+       244 -      to { opacity: 1; transform: translateY(0); }
+       245 -  }
+       246 -  @keyframes slide-up {
+       247 -      from { opacity: 0; transform: translateY(20px); }
+       248 -      to { opacity: 1; transform: translateY(0); }
+       249 -  }
+       250 -  .animate-fade-in {
+       251 -      animation: fade-in 0.6s ease-out;
+       252 -  }
+       253 -  .animate-slide-up {
+       254 -      animation: slide-up 0.5s ease-out;
+       255 -  }
+       256 -  </style>
+       257 -  @endpush
+       258 -  
+       240    @push('scripts')
+       241    <script>
+       242    function tappingStation() {
+  ⎿  API Error: 403 用户没有有效的claudecode订阅 · Please run /login
+
+
+

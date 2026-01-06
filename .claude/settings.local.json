@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(php artisan:*)",
+      "Bash(mysql:*)",
+      "Bash(curl:*)",
+      "Bash(php:*)",
+      "Bash(cd:*)",
+      "Bash(git checkout:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)"
+    ]
+  }
+}

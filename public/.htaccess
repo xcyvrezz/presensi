@@ -5,6 +5,11 @@
 
     RewriteEngine On
 
+    # RewriteBase - Uncomment and adjust if needed for subdirectory installations
+    # For subdirectory: RewriteBase /your-subdirectory/public/
+    # For root domain: Leave commented or use RewriteBase /
+    # RewriteBase /absensi-mifare/public/
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

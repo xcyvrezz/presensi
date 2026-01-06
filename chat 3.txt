@@ -1,0 +1,754 @@
+
+ * ▐▛███▜▌ *   Claude Code v2.0.69
+* ▝▜█████▛▘ *  Sonnet 4.5 · API Usage Billing
+ *  ▘▘ ▝▝  *   D:\PROJECT\ABSEN MIFARE
+
+  /model to try Opus 4.5
+══════════════════ Conversation compacted · ctrl+o for history ═════════════════
+  ⎿ Read 
+    absensi-mifare\resources\views\livewire\kepala-sekolah\reports.blade.php
+    (372 lines)
+  ⎿ Read absensi-mifare\resources\views\livewire\admin\attendance\attendance-ind
+    ex.blade.php (291 lines)
+  ⎿  Read absensi-mifare\app\Providers\AppServiceProvider.php (44 lines)
+  ⎿  Read absensi-mifare\config\app.php (127 lines)
+  ⎿ Read absensi-mifare\resources\views\livewire\admin\students\student-create.b
+    lade.php (190 lines)
+
+● I'll continue by finding and updating the admin analytics page with the minimalist design pattern.
+
+● Search(pattern: "**/admin/*analytics*.blade.php")
+  ⎿  Found 0 files 
+
+● Search(pattern: "**/admin/analytics/*.blade.php")
+  ⎿  Found 1 file (ctrl+o to expand)
+
+● Read(absensi-mifare\resources\views\livewire\admin\analytics\advanced-reports.
+      blade.php)
+  ⎿  Read 267 lines
+
+● Now I'll update the admin analytics page with the minimalist design pattern, changing from the multi-color scheme to blue-600 and slate colors.
+
+● Update(absensi-mifare\resources\views\livewire\admin\analytics\advanced-report
+        s.blade.php)
+  ⎿  Updated absensi-mifare\resources\views\livewire\admin\analytics\advanc
+     d-reports.blade.php with 3 additions and 3 removals
+       1    <div>
+       2        <!-- Page Header -->
+       3 -      <div class="mb-6">
+       4 -          <h1 class="text-3xl font-bold text-gray-800
+         -  ">Analitik & Laporan Lanjutan</h1>
+       5 -          <p class="text-gray
+         -  -600 mt-1">Analisis mendalam tentang data kehadiran siswa</p>
+       3 +      <div class="mb-8">
+       4 +          <h1 class="text-2xl font-bold text-slate-900
+         +  ">Analitik & Laporan Lanjutan</h1>
+       5 +          <p class="text-slate
+         +  -600 mt-1">Analisis mendalam tentang data kehadiran siswa</p>
+       6        </div>
+       7    
+       8        <!-- Filters -->
+
+● Update(absensi-mifare\resources\views\livewire\admin\analytics\advanced-report
+        s.blade.php)
+  ⎿  Updated absensi-mifare\resources\views\livewire\admin\analytics\advanc
+     d-reports.blade.php with 14 additions and 14 removals
+        6        </div>
+        7    
+        8        <!-- Filters -->
+        9 -      <div class="bg-white rounded-xl shadow-lg border border-
+          -  gray-200 p-6 mb-6">
+        9 +      <div class="bg-white border border-slate-200 
+          +  rounded-xl shadow-sm p-6 mb-6">
+       10            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+       11                <!-- Report Type -->
+       12                <div>
+       13 -                  <label class="block text-sm font-semibold
+          -   text-gray-700 mb-2">Jenis Laporan</label>
+       14 -                  <select wire:model.live="reportType" 
+          -  class="w-full px-4 py-2 border border-gray-300 rounded-lg
+          -   focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+       13 +                  <label class="block text-sm font-medium
+          +   text-slate-700 mb-2">Jenis Laporan</label>
+       14 +                  <select wire:model.live="reportType" 
+          +  class="w-full px-4 py-2.5 border border-slate-200 rounded-xl
+          +   focus:ring-2 focus:ring-blue-500 focus:border-
+          +  blue-500 transition-all">
+       15                        <option value="overview">Ringkasan 
+            Umum</option>
+       16                        <option value="trends">Tren 
+            Kehadiran</option>
+       17                        <option value="comparison">Perbandingan 
+            Jurusan</option>
+     ...
+       21    
+       22                <!-- Date Range -->
+       23                <div>
+       24 -                  <label class="block text-sm font-semibold
+          -   text-gray-700 mb-2">Periode</label>
+       25 -                  <select wire:model.live="dateRange" 
+          -  class="w-full px-4 py-2 border border-gray-300 rounded-lg
+          -   focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+       24 +                  <label class="block text-sm font-medium
+          +   text-slate-700 mb-2">Periode</label>
+       25 +                  <select wire:model.live="dateRange" 
+          +  class="w-full px-4 py-2.5 border border-slate-200 rounded-xl
+          +   focus:ring-2 focus:ring-blue-500 focus:border-
+          +  blue-500 transition-all">
+       26                        <option value="7days">7 Hari 
+            Terakhir</option>
+       27                        <option value="30days">30 Hari 
+            Terakhir</option>
+       28                        <option value="3months">3 Bulan 
+            Terakhir</option>
+     ...
+       34    
+       35                <!-- Department Filter -->
+       36                <div>
+       37 -                  <label class="block text-sm font-semibold
+          -   text-gray-700 mb-2">Jurusan</label>
+       38 -                  <select wire:model.live="selectedDepartment"
+          -   class="w-full px-4 py-2 border border-gray-300 rounded-lg
+          -   focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+       37 +                  <label class="block text-sm font-medium
+          +   text-slate-700 mb-2">Jurusan</label>
+       38 +                  <select wire:model.live="selectedDepartment"
+          +   class="w-full px-4 py-2.5 border border-slate-200 rounded-
+          +  xl focus:ring-2 focus:ring-blue-500 focus:border-
+          +  blue-500 transition-all">
+       39                        <option value="">Semua Jurusan</option>
+       40                        @foreach($departments as $dept)
+       41                            <option value="{{ $dept->id }}">{{ 
+            $dept->name }}</option>
+     ...
+       45    
+       46                <!-- Class Filter -->
+       47                <div>
+       48 -                  <label class="block text-sm font-semibold
+          -   text-gray-700 mb-2">Kelas</label>
+       49 -                  <select wire:model.live="selectedClass" 
+          -  class="w-full px-4 py-2 border border-gray-300 rounded-lg
+          -   focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+       48 +                  <label class="block text-sm font-medium
+          +   text-slate-700 mb-2">Kelas</label>
+       49 +                  <select wire:model.live="selectedClass" 
+          +  class="w-full px-4 py-2.5 border border-slate-200 rounded-xl
+          +   focus:ring-2 focus:ring-blue-500 focus:border-
+          +  blue-500 transition-all">
+       50                        <option value="">Semua Kelas</option>
+       51                        @foreach($classes as $class)
+       52                            <option value="{{ $class->id }}">{{ 
+            $class->name }}</option>
+     ...
+       59            @if($dateRange === 'custom')
+       60                <div class="grid grid-cols-1 md:grid-cols-3 
+            gap-4 mt-4">
+       61                    <div>
+       62 -                      <label class="block text-sm font-
+          -  semibold text-gray-700 mb-2">Tanggal Mulai</label>
+       63 -                      <input type="date" 
+          -  wire:model="customStartDate" class="w-full px-4 py-2
+          -   border border-gray-300 rounded-lg
+          -   focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+       62 +                      <label class="block text-sm font-medium
+          +   text-slate-700 mb-2">Tanggal Mulai</label>
+       63 +                      <input type="date" 
+          +  wire:model="customStartDate" class="w-full px-4 py-2.5
+          +   border border-slate-200 rounded-xl
+          +   focus:ring-2 focus:ring-blue-500 focus:border-
+          +  blue-500 transition-all">
+       64                    </div>
+       65                    <div>
+       66 -                      <label class="block text-sm font-
+          -  semibold text-gray-700 mb-2">Tanggal Selesai</label>
+       67 -                      <input type="date" 
+          -  wire:model="customEndDate" class="w-full px-4 py-2
+          -   border border-gray-300 rounded-lg
+          -   focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+       66 +                      <label class="block text-sm font-medium
+          +   text-slate-700 mb-2">Tanggal Selesai</label>
+       67 +                      <input type="date" 
+          +  wire:model="customEndDate" class="w-full px-4 py-2.5
+          +   border border-slate-200 rounded-xl
+          +   focus:ring-2 focus:ring-blue-500 focus:border-
+          +  blue-500 transition-all">
+       68                    </div>
+       69                    <div class="flex items-end">
+       70 -                      <button wire:click="applyCustomDate" 
+          -  class="w-full px-4 py-2 bg-blue-600 text-white font-semibold
+          -   rounded-lg hover:bg-blue-700 transition-colors">
+       70 +                      <button wire:click="applyCustomDate" 
+          +  class="w-full px-4 py-2.5 bg-blue-600 text-white font-medium
+          +   rounded-xl hover:bg-blue-700 transition-
+          +  all duration-300 shadow-sm hover:shadow-md">
+       71                            Terapkan
+       72                        </button>
+       73                    </div>
+
+● Update(absensi-mifare\resources\views\livewire\admin\analytics\advanced-report
+        s.blade.php)
+  ⎿  Updated absensi-mifare\resources\views\livewire\admin\analytics\advanc
+     d-reports.blade.php with 53 additions and 17 removals
+        77    
+        78        <!-- Overview Report -->
+        79        @if($reportType === 'overview')
+        80 -          <div class="grid grid-cols-1 md:grid-cols-4 gap-4
+           -   mb-6">
+        81 -              <div class="bg-white rounded-lg shadow p-6 
+           - border-l-4 border-green-500">
+        82 -                  <div class="text-sm font-semibold 
+           - text-gray-600">Total Hadir</div>
+        83 -                  <div class="text-3xl font-bold 
+           - text-gray-900 mt-2">{{ number_format($statistics['hadir'] ??
+           -  0) }}</div>
+        84 -                  <div class="text-xs text-gray-500 
+           - mt-1">Dari {{ number_format($statistics['total_records'] ?? 
+           - 0) }} total rekaman</div>
+        80 +          <div class="grid grid-cols-1 md:grid-cols-4 gap-5
+           +   mb-6">
+        81 +              <div class="bg-white border border-slate-200 
+           + rounded-xl shadow-sm p-6 hover:shadow-md transition-all">
+        82 +                  <div class="flex items-center 
+           + justify-between">
+        83 +                      <div class="flex-1">
+        84 +                          <p class="text-xs font-semibold 
+           + text-slate-500 uppercase tracking-wider mb-2">Total 
+           + Hadir</p>
+        85 +                          <p class="text-4xl font-bold 
+           + text-slate-900 mb-1">{{ number_format($statistics['hadir'] 
+           + ?? 0) }}</p>
+        86 +                          <p class="text-sm 
+           + text-slate-600">Dari {{ 
+           + number_format($statistics['total_records'] ?? 0) }} total 
+           + rekaman</p>
+        87 +                      </div>
+        88 +                      <div class="w-12 h-12 bg-blue-50 
+           + rounded-xl flex items-center justify-center">
+        89 +                          <svg class="w-6 h-6 text-blue-600" 
+           + fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        90 +                              <path stroke-linecap="round" 
+           + stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 
+           + 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        91 +                          </svg>
+        92 +                      </div>
+        93 +                  </div>
+        94                </div>
+        95    
+        96 -              <div class="bg-white rounded-lg shadow p-6 
+           - border-l-4 border-orange-500">
+        97 -                  <div class="text-sm font-semibold 
+           - text-gray-600">Total Terlambat</div>
+        98 -                  <div class="text-3xl font-bold 
+           - text-gray-900 mt-2">{{ 
+           - number_format($statistics['terlambat'] ?? 0) }}</div>
+        99 -                  <div class="text-xs text-gray-500 
+           - mt-1">Rata-rata: {{ $statistics['avg_late_minutes'] ?? 0 }} 
+           - menit</div>
+        96 +              <div class="bg-white border border-slate-200 
+           + rounded-xl shadow-sm p-6 hover:shadow-md transition-all">
+        97 +                  <div class="flex items-center 
+           + justify-between">
+        98 +                      <div class="flex-1">
+        99 +                          <p class="text-xs font-semibold 
+           + text-slate-500 uppercase tracking-wider mb-2">Total 
+           + Terlambat</p>
+       100 +                          <p class="text-4xl font-bold 
+           + text-slate-900 mb-1">{{ 
+           + number_format($statistics['terlambat'] ?? 0) }}</p>
+       101 +                          <p class="text-sm 
+           + text-slate-600">Rata-rata: {{ 
+           + $statistics['avg_late_minutes'] ?? 0 }} menit</p>
+       102 +                      </div>
+       103 +                      <div class="w-12 h-12 bg-slate-100 
+           + rounded-xl flex items-center justify-center">
+       104 +                          <svg class="w-6 h-6 text-slate-600"
+           +  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+       105 +                              <path stroke-linecap="round" 
+           + stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 
+           + 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+       106 +                          </svg>
+       107 +                      </div>
+       108 +                  </div>
+       109                </div>
+       110    
+       111 -              <div class="bg-white rounded-lg shadow p-6 
+           - border-l-4 border-blue-500">
+       112 -                  <div class="text-sm font-semibold 
+           - text-gray-600">Izin & Sakit</div>
+       113 -                  <div class="text-3xl font-bold 
+           - text-gray-900 mt-2">{{ number_format(($statistics['izin'] ??
+           -  0) + ($statistics['sakit'] ?? 0)) }}</div>
+       114 -                  <div class="text-xs text-gray-500 
+           - mt-1">Izin: {{ $statistics['izin'] ?? 0 }}, Sakit: {{ 
+           - $statistics['sakit'] ?? 0 }}</div>
+       111 +              <div class="bg-white border border-slate-200 
+           + rounded-xl shadow-sm p-6 hover:shadow-md transition-all">
+       112 +                  <div class="flex items-center 
+           + justify-between">
+       113 +                      <div class="flex-1">
+       114 +                          <p class="text-xs font-semibold 
+           + text-slate-500 uppercase tracking-wider mb-2">Izin & 
+           + Sakit</p>
+       115 +                          <p class="text-4xl font-bold 
+           + text-slate-900 mb-1">{{ number_format(($statistics['izin'] 
+           + ?? 0) + ($statistics['sakit'] ?? 0)) }}</p>
+       116 +                          <p class="text-sm 
+           + text-slate-600">Izin: {{ $statistics['izin'] ?? 0 }}, Sakit:
+           +  {{ $statistics['sakit'] ?? 0 }}</p>
+       117 +                      </div>
+       118 +                      <div class="w-12 h-12 bg-slate-100 
+           + rounded-xl flex items-center justify-center">
+       119 +                          <svg class="w-6 h-6 text-slate-600"
+           +  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+       120 +                              <path stroke-linecap="round" 
+           + stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2
+           +  5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414
+           +  5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+       121 +                          </svg>
+       122 +                      </div>
+       123 +                  </div>
+       124                </div>
+       125    
+       126 -              <div class="bg-white rounded-lg shadow p-6 
+           - border-l-4 border-red-500">
+       127 -                  <div class="text-sm font-semibold 
+           - text-gray-600">Tingkat Kehadiran</div>
+       128 -                  <div class="text-3xl font-bold 
+           - text-gray-900 mt-2">{{ $statistics['attendance_rate'] ?? 0 
+           - }}%</div>
+       129 -                  <div class="text-xs text-gray-500 
+           - mt-1">Dari {{ $statistics['expected_records'] ?? 0 }} yang 
+           - diharapkan</div>
+       126 +              <div class="bg-blue-600 border border-blue-700 
+           + rounded-xl shadow-sm p-6 hover:shadow-md transition-all 
+           + text-white">
+       127 +                  <div class="flex items-center 
+           + justify-between">
+       128 +                      <div class="flex-1">
+       129 +                          <p class="text-xs font-semibold 
+           + uppercase tracking-wider mb-2 opacity-90">Tingkat 
+           + Kehadiran</p>
+       130 +                          <p class="text-4xl font-bold 
+           + mb-1">{{ $statistics['attendance_rate'] ?? 0 }}%</p>
+       131 +                          <p class="text-sm opacity-80">Dari 
+           + {{ $statistics['expected_records'] ?? 0 }} yang 
+           + diharapkan</p>
+       132 +                      </div>
+       133 +                      <div class="w-12 h-12 bg-white/20 
+           + rounded-xl flex items-center justify-center">
+       134 +                          <svg class="w-6 h-6" fill="none" 
+           + stroke="currentColor" viewBox="0 0 24 24">
+       135 +                              <path stroke-linecap="round" 
+           + stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 
+           + 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2
+           +  0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 
+           + 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 
+           + 01-2-2z"/>
+       136 +                          </svg>
+       137 +                      </div>
+       138 +                  </div>
+       139                </div>
+       140            </div>
+       141    
+
+● Update(absensi-mifare\resources\views\livewire\admin\analytics\advanced-report
+        s.blade.php)
+  ⎿  Updated absensi-mifare\resources\views\livewire\admin\analytics\advanc
+     d-reports.blade.php with 6 additions and 6 removals
+       141    
+       142            <!-- Status Distribution Chart -->
+       143            @if(isset($chartData['statusDistribution']))
+       144 -              <div class="bg-white rounded-xl shadow-lg 
+           -  border border-gray-200 p-6">
+       145 -                  <h3 class="text-lg font-bold text-gray
+           -  -900 mb-4">Distribusi Status Kehadiran</h3>
+       144 +              <div class="bg-white border border-slate-200 
+           +  rounded-xl shadow-sm p-6">
+       145 +                  <h3 class="text-lg font-semibold text-slate
+           +  -900 mb-4">Distribusi Status Kehadiran</h3>
+       146                    <div class="grid grid-cols-2 md:grid-cols-6
+              gap-4">
+       147                        
+             @foreach($chartData['statusDistribution']['labels'] as 
+             $index => $label)
+       148                            <div class="text-center">
+       149 -                              <div class="text-2xl font-bold 
+           -  text-gray
+           -  -900">{{ number_format($chartData['statusDistribution']['da
+           -  ta'][$index]) }}</div>
+       150 -                              <div class="text-sm text-gray
+           -  -600">{{ $label }}</div>
+       151 -                              <div class="mt-2 h-2 bg-gray-
+           -  200 rounded-full overflow-hidden">
+       152 -                                  <div class="h-full {{ 
+           -  ['bg-green-500', 'bg-orange-500', 'bg-blue-500', 
+           -  'bg-yellow-500', 'bg-red-500', 'bg-purple-500'][$index] }}"
+       149 +                              <div class="text-2xl font-bold 
+           +  text-slate
+           +  -900">{{ number_format($chartData['statusDistribution']['da
+           +  ta'][$index]) }}</div>
+       150 +                              <div class="text-sm text-slate
+           +  -600">{{ $label }}</div>
+       151 +                              <div class="mt-2 h-2 bg-slate-
+           +  100 rounded-full overflow-hidden">
+       152 +                                  <div class="h-full {{ 
+           +  $index === 0 ? 'bg-blue-600' : 'bg-slate-500' }}"
+       153                                         style="width: {{ 
+             ($statistics['total_records'] ?? 0) > 0 ? 
+             round(($chartData['statusDistribution']['data'][$index] / 
+             $statistics['total_records']) * 100, 1) : 0 }}%"></div>
+       154                                </div>
+       155                            </div>
+
+● Update(absensi-mifare\resources\views\livewire\admin\analytics\advanced-report
+        s.blade.php)
+  ⎿  Updated absensi-mifare\resources\views\livewire\admin\analytics\advanc
+     d-reports.blade.php with 8 additions and 8 removals
+       161    
+       162        <!-- Trends Report -->
+       163        @if($reportType === 'trends' && 
+             isset($chartData['trends']))
+       164 -          <div class="bg-white rounded-xl shadow-lg 
+           -  border border-gray-200 p-6">
+       165 -              <h3 class="text-lg font-bold text-gray
+           -  -900 mb-4">Tren Kehadiran Harian</h3>
+       166 -              <p class="text-sm text-gray
+           -  -600 mb-6">Grafik menunjukkan pola kehadiran dari {{ 
+           -  $customStartDate }} hingga {{ $customEndDate }}</p>
+       164 +          <div class="bg-white border border-slate-200 
+           +  rounded-xl shadow-sm p-6">
+       165 +              <h3 class="text-lg font-semibold text-slate
+           +  -900 mb-4">Tren Kehadiran Harian</h3>
+       166 +              <p class="text-sm text-slate
+           +  -600 mb-6">Grafik menunjukkan pola kehadiran dari {{ 
+           +  $customStartDate }} hingga {{ $customEndDate }}</p>
+       167    
+       168                <div class="overflow-x-auto">
+       169                    <div class="min-w-full">
+       170                        <!-- Simple Line Chart Visualization 
+             -->
+       171                        <div class="grid grid-cols-1 gap-4">
+       172                            
+             @foreach($chartData['trends']['datasets'] as $dataset)
+       173 -                              <div class="border-b pb-4">
+       173 +                              <div class="border-b 
+           +  border-slate-200 pb-4">
+       174                                    <div class="flex 
+             items-center justify-between mb-2">
+       175 -                                      <span class="text-sm 
+           -  font-semibold text-gray-700">{{ $dataset['label'] }}</span>
+       176 -                                      <span class="text-xs 
+           -  text-gray
+           -  -500">Total: {{ array_sum($dataset['data']) }}</span>
+       175 +                                      <span class="text-sm 
+           +  font-semibold text-slate
+           +  -700">{{ $dataset['label'] }}</span>
+       176 +                                      <span class="text-xs 
+           +  text-slate
+           +  -500">Total: {{ array_sum($dataset['data']) }}</span>
+       177                                    </div>
+       178                                    <div class="flex items-end 
+             gap-1 h-32">
+       179                                        
+             @foreach($dataset['data'] as $value)
+     ...
+       181                                                $maxValue = 
+             max($dataset['data']) ?: 1;
+       182                                                $height = 
+             ($value / $maxValue) * 100;
+       183                                            @endphp
+       184 -                                          <div class="flex-1 
+           -  bg-blue-500 rounded-t hover:bg-blue-600 transition-colors
+           -   cursor-pointer"
+       184 +                                          <div class="flex-1 
+           +  bg-blue-600 rounded-t hover:bg-blue-700 transition-all
+           +   cursor-pointer"
+       185                                                 style="height:
+              {{ $height }}%"
+       186                                                 title="{{ 
+             $value }}">
+       187                                            </div>
+     ...
+       189                                    </div>
+       190                                    <div class="flex gap-1 
+             mt-1">
+       191                                        
+             @foreach($chartData['trends']['labels'] as $label)
+       192 -                                          <div class="flex-1 
+           -  text-xs text-gray-500 text-center">{{ $label }}</div>
+       192 +                                          <div class="flex-1 
+           +  text-xs text-slate-500 text-center">{{ $label }}</div>
+       193                                        @endforeach
+       194                                    </div>
+       195                                </div>
+
+● Update(absensi-mifare\resources\views\livewire\admin\analytics\advanced-report
+        s.blade.php)
+  ⎿  Updated absensi-mifare\resources\views\livewire\admin\analytics\advanc
+     d-reports.blade.php with 12 additions and 12 removals
+       204        @if($reportType === 'comparison' && 
+             isset($chartData['comparison']))
+       205            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+       206                <!-- Department Comparison -->
+       207 -              <div class="bg-white rounded-xl shadow-lg 
+           -  border border-gray-200 p-6">
+       208 -                  <h3 class="text-lg font-bold text-gray
+           -  -900 mb-4">Perbandingan Antar Jurusan</h3>
+       207 +              <div class="bg-white border border-slate-200 
+           +  rounded-xl shadow-sm p-6">
+       208 +                  <h3 class="text-lg font-semibold text-slate
+           +  -900 mb-4">Perbandingan Antar Jurusan</h3>
+       209                    <div class="space-y-4">
+       210                        
+             @foreach($chartData['comparison']['labels'] as $index => 
+             $label)
+       211                            <div>
+       212                                <div class="flex 
+             justify-between text-sm mb-1">
+       213 -                                  <span class="font-semibold 
+           -  text-gray-700">{{ $label }}</span>
+       214 -                                  <span class="text-gray
+           -  -600">
+       213 +                                  <span class="font-semibold 
+           +  text-slate-700">{{ $label }}</span>
+       214 +                                  <span class="text-slate
+           +  -600">
+       215                                        Hadir: {{ 
+             $chartData['comparison']['datasets'][0]['data'][$index] }} |
+       216                                        Terlambat: {{ 
+             $chartData['comparison']['datasets'][1]['data'][$index] }}
+       217                                    </span>
+     ...
+       222                                        $hadirPercent = $total 
+             > 0 ? 
+             ($chartData['comparison']['datasets'][0]['data'][$index] / 
+             $total) * 100 : 0;
+       223                                        $terlambatPercent = 
+             $total > 0 ? 
+             ($chartData['comparison']['datasets'][1]['data'][$index] / 
+             $total) * 100 : 0;
+       224                                    @endphp
+       225 -                                  <div class="bg-green-500
+           -   rounded" style="width: {{ $hadirPercent }}%" title="Hadir:
+           -   {{ $hadirPercent }}%"></div>
+       226 -                                  <div class="bg-orange
+           -  -500 rounded" style="width: {{ $terlambatPercent }}%" 
+           -  title="Terlambat: {{ $terlambatPercent }}%"></div>
+       225 +                                  <div class="bg-blue-600
+           +   rounded" style="width: {{ $hadirPercent }}%" title="Hadir:
+           +   {{ $hadirPercent }}%"></div>
+       226 +                                  <div class="bg-slate
+           +  -500 rounded" style="width: {{ $terlambatPercent }}%" 
+           +  title="Terlambat: {{ $terlambatPercent }}%"></div>
+       227                                </div>
+       228                            </div>
+       229                        @endforeach
+     ...
+       231                </div>
+       232    
+       233                <!-- Attendance Rates -->
+       234 -              <div class="bg-white rounded-xl shadow-lg 
+           -  border border-gray-200 p-6">
+       235 -                  <h3 class="text-lg font-bold text-gray
+           -  -900 mb-4">Tingkat Kehadiran per Jurusan</h3>
+       234 +              <div class="bg-white border border-slate-200 
+           +  rounded-xl shadow-sm p-6">
+       235 +                  <h3 class="text-lg font-semibold text-slate
+           +  -900 mb-4">Tingkat Kehadiran per Jurusan</h3>
+       236                    <div class="space-y-4">
+       237                        
+             @foreach($chartData['attendanceRates']['labels'] as $index 
+             => $label)
+       238                            <div>
+       239                                <div class="flex 
+             justify-between text-sm mb-1">
+       240 -                                  <span class="font-semibold 
+           -  text-gray-700">{{ $label }}</span>
+       241 -                                  <span class="font-bold 
+           -  text-gray
+           -  -900">{{ $chartData['attendanceRates']['data'][$index] 
+           -  }}%</span>
+       240 +                                  <span class="font-semibold 
+           +  text-slate-700">{{ $label }}</span>
+       241 +                                  <span class="font-bold 
+           +  text-slate
+           +  -900">{{ $chartData['attendanceRates']['data'][$index] 
+           +  }}%</span>
+       242                                </div>
+       243 -                              <div class="w-full bg-gray-200
+           -   rounded-full h-3">
+       244 -                                  <div class="h-full 
+           -  rounded-full {{ 
+           -  $chartData['attendanceRates']['data'][$index] >= 80 ? 'bg-
+           -  green-500' : ($chartData['
+           -  attendanceRates']['data'][$index] >= 60 ? 'bg-yellow-500' 
+           -  : 'bg-red-500') }}"
+       243 +                              <div class="w-full bg-slate-100
+           +   rounded-full h-3">
+       244 +                                  <div class="h-full 
+           +  rounded-full {{ 
+           +  $chartData['attendanceRates']['data'][$index] >= 90 ? 'bg-
+           +  blue-600' : 'bg-slate-500' }}"
+       245                                         style="width: {{ 
+             $chartData['attendanceRates']['data'][$index] }}%"></div>
+       246                                </div>
+       247                            </div>
+
+● Update(absensi-mifare\resources\views\livewire\admin\analytics\advanced-report
+        s.blade.php)
+  ⎿  Updated absensi-mifare\resources\views\livewire\admin\analytics\advanc
+     d-reports.blade.php with 16 additions and 16 removals
+       255        @if($reportType === 'detailed' && 
+             isset($statistics['top_students']))
+       256            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+       257                <!-- Top Punctual Students -->
+       258 -              <div class="bg-white rounded-xl shadow-lg 
+           -  border border-gray-200 p-6">
+       259 -                  <h3 class="text-lg font-bold text-gray
+           -  -900 mb-4">🏆 Top 10 Siswa Paling Rajin</h3>
+       258 +              <div class="bg-white border border-slate-200 
+           +  rounded-xl shadow-sm p-6">
+       259 +                  <h3 class="text-lg font-semibold text-slate
+           +  -900 mb-4">Top 10 Siswa Paling Rajin</h3>
+       260                    <div class="space-y-3">
+       261                        @foreach($statistics['top_students'] as
+              $index => $student)
+       262 -                          <div class="flex items-center gap-3
+           -  p-3 bg-gray-50 rounded-lg hover:bg-gray-100 
+           - transition-colors">
+       263 -                              <div class="flex-shrink-0 w-8
+           -   h-8 flex items-center justify-center rounded-full
+           -   {{ $index === 0 ? 'bg-yellow-
+           -  500' : ($index === 1 ? 'bg-gray-400' : ($index === 2 ? 
+           -  'bg-orange-600' : 'bg-blue-500'))
+           -   }} text-white font-bold text-sm">
+       262 +                          <div class="flex items-center gap-3
+           +  p-3 {{ $index === 0 ? 'bg-blue-50' : 'bg-slate-50' }} 
+           + border {{ $index === 0 ? 'border-blue-100' : 
+           + 'border-slate-100' }} rounded-xl hover:shadow-sm 
+           + transition-all">
+       263 +                              <div class="flex-shrink-0 w-10
+           +   h-10 flex items-center justify-center rounded-xl
+           +   {{ $index === 0 ? 'bg-blue-600' : 'bg-slate-500'
+           +   }} text-white font-bold text-sm">
+       264                                    {{ $index + 1 }}
+       265                                </div>
+       266                                <div class="flex-1">
+       267 -                                  <div class="font-semibold 
+           -  text-gray-900">{{ $student->full_name }}</div>
+       268 -                                  <div class="text-xs text-
+           -  gray-500">{{ $student->class->name ?? '-' }}</div>
+       267 +                                  <div class="font-semibold 
+           +  text-slate-900">{{ $student->full_name }}</div>
+       268 +                                  <div class="text-xs text-
+           +  slate-500">{{ $student->class->name ?? '-' }}</div>
+       269                                </div>
+       270                                <div class="text-right">
+       271 -                                  <div class="font-bold text-
+           -  green-600">{{ $student->hadir_count }}</div>
+       272 -                                  <div class="text-xs text-
+           -  gray-500">hari hadir</div>
+       271 +                                  <div class="font-bold 
+           +  {{ $index === 0 ? 'text-blue-600' : 'text-slate-700' }}
+           +  ">{{ $student->hadir_count }}</div>
+       272 +                                  <div class="text-xs text-
+           +  slate-500">hari hadir</div>
+       273                                </div>
+       274                            </div>
+       275                        @endforeach
+     ...
+       277                </div>
+       278    
+       279                <!-- Most Late Students -->
+       280 -              <div class="bg-white rounded-xl shadow-lg 
+           -  border border-gray-200 p-6">
+       281 -                  <h3 class="text-lg font-bold text-gray
+           -  -900 mb-4">⚠️ Top 10 Siswa Sering Terlambat</h3>
+       280 +              <div class="bg-white border border-slate-200 
+           +  rounded-xl shadow-sm p-6">
+       281 +                  <h3 class="text-lg font-semibold text-slate
+           +  -900 mb-4">Top 10 Siswa Sering Terlambat</h3>
+       282                    <div class="space-y-3">
+       283                        @foreach($statistics['late_students'] 
+             as $index => $student)
+       284 -                          <div class="flex items-center gap-3
+           -   p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-
+           -  colors">
+       285 -                              <div class="flex-shrink-0 w-8
+           -   h-8 flex items-center justify-center rounded-full bg-red
+           -  -500 text-white font-bold text-sm">
+       284 +                          <div class="flex items-center gap-3
+           +   p-3 bg-slate-50 border border-slate-100 rounded-xl hover:
+           +  shadow-sm transition-all">
+       285 +                              <div class="flex-shrink-0 w-10
+           +   h-10 flex items-center justify-center rounded-xl bg-slate
+           +  -500 text-white font-bold text-sm">
+       286                                    {{ $index + 1 }}
+       287                                </div>
+       288                                <div class="flex-1">
+       289 -                                  <div class="font-semibold 
+           -  text-gray-900">{{ $student->full_name }}</div>
+       290 -                                  <div class="text-xs text-
+           -  gray-500">{{ $student->class->name ?? '-' }}</div>
+       289 +                                  <div class="font-semibold 
+           +  text-slate-900">{{ $student->full_name }}</div>
+       290 +                                  <div class="text-xs text-
+           +  slate-500">{{ $student->class->name ?? '-' }}</div>
+       291                                </div>
+       292                                <div class="text-right">
+       293 -                                  <div class="font-bold text-
+           -  red-600">{{ $student->late_count }}</div>
+       294 -                                  <div class="text-xs text-
+           -  gray-500">kali terlambat</div>
+       293 +                                  <div class="font-bold text-
+           +  slate-700">{{ $student->late_count }}</div>
+       294 +                                  <div class="text-xs text-
+           +  slate-500">kali terlambat</div>
+       295                                </div>
+       296                            </div>
+       297                        @endforeach
+
+● Selesai! Saya telah berhasil mengupdate halaman admin analytics dengan desain minimalis yang konsisten. Berikut ringkasan perubahan yang dilakukan pada resources/views/livewire/admin/analytics/advanced-reports.blade.php:
+
+  Perubahan Utama:
+
+  1. Header - Diupdate dari gray ke slate dengan ukuran yang lebih konsisten
+  2. Filter Section - Semua input menggunakan slate-200 borders, rounded-xl, dan styling yang konsisten
+  3. Overview Statistics (4 Cards):
+    - Total Hadir: white card dengan icon blue-50/blue-600
+    - Total Terlambat: white card dengan icon slate-100/slate-600
+    - Izin & Sakit: white card dengan icon slate-100/slate-600
+    - Tingkat Kehadiran: blue-600 card (satu-satunya card berwarna)
+    - Dihapus border-l-4 berwarna, diganti dengan layout icon yang konsisten
+  4. Status Distribution Chart - Disederhanakan dari 6 warna menjadi blue-600 untuk Hadir, slate-500 untuk lainnya
+  5. Trends Chart - Bar chart menggunakan blue-600 dengan hover blue-700
+  6. Comparison Charts:
+    - Department comparison: blue-600 untuk Hadir, slate-500 untuk Terlambat
+    - Attendance rates: blue-600 untuk ≥90%, slate-500 untuk <90%
+  7. Detailed Rankings:
+    - Top 10 Siswa Rajin: #1 mendapat blue-50/blue-600, lainnya slate-50/slate-500
+    - Top 10 Terlambat: Semua menggunakan slate colors
+    - Ranking badges menggunakan rounded-xl dengan ukuran lebih besar (10x10)
+
+  Semua perubahan mengikuti pola desain minimalis dengan blue-600 sebagai warna utama dan slate scale untuk semua elemen sekunder.
+
+> lanjut ke pengaturan absensi 
+
+● Search(pattern: "**/settings*.blade.php")
+  ⎿  Found 0 files 
+
+● Search(pattern: "**/pengaturan*.blade.php")
+  ⎿  Found 0 files 
+
+● Search(pattern: "**/attendance-settings*.blade.php")
+  ⎿  Found 1 file (ctrl+o to expand)
+  ⎿  API Error: 403 用户没有有效的claudecode订阅 · Please run /login
+
+> /rename 
+  ⎿  Please provide a name for the session. Usage: /rename <name>
+
+> TERAKHIR CONVERSATION 
+  ⎿  API Error: 403 用户没有有效的claudecode订阅 · Please run /login
+
+
+

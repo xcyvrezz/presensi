@@ -1,0 +1,308 @@
+<div>
+    <!-- Page Header -->
+    <div class="mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Mark Siswa Bolos</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    @if($statusMessage)
+        <div class="mb-6 p-4 rounded-xl border-l-4
+            {{ $statusType === 'success' ? 'bg-blue-50 border-blue-500' : '' }}
+            {{ $statusType === 'error' ? 'bg-slate-100 border-slate-500' : '' }}">
+            <p class="font-medium
+                {{ $statusType === 'success' ? 'text-blue-700' : '' }}
+                {{ $statusType === 'error' ? 'text-slate-700' : '' }}">
+                {{ $statusMessage }}
+            </p>
+        </div>
+    @endif
+
+    <!-- Warning Card -->
+    <div class="mb-6 bg-slate-50 border-l-4 border-slate-500 p-4 rounded-xl">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div class="flex-1">
+                <h3 class="text-slate-900 font-semibold mb-1">Perhatian!</h3>
+                <ul class="text-sm text-slate-700 space-y-1">
+                    <li>• Status <strong>BOLOS</strong> adalah tindakan pelanggaran disiplin siswa</li>
+                    <li>• Siswa yang di-mark BOLOS akan mendapat nilai <strong>0%</strong> untuk kehadiran</li>
+                    <li>• Gunakan fitur ini hanya jika ada konfirmasi bahwa siswa memang sengaja membolos</li>
+                    <li>• Pastikan alasan yang diinput jelas dan akurat untuk dokumentasi</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+        <form wire:submit.prevent="submitMarkBolos">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Department Select -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Jurusan <span class="text-blue-600">*</span>
+                    </label>
+                    <select wire:model.live="selectedDepartment"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="">-- Pilih Jurusan --</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}">{{ $dept->code }} - {{ $dept->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Class Select -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Kelas <span class="text-blue-600">*</span>
+                    </label>
+                    <select wire:model.live="selectedClass"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            @if(!$selectedDepartment) disabled @endif>
+                        <option value="">{{ $selectedDepartment ? '-- Pilih Kelas --' : '-- Pilih Jurusan Dulu --' }}</option>
+                        @foreach($classes as $class)
+                            <option value="{{ $class->id }}">{{ $class->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Student Select with Search -->
+                <div class="md:col-span-2" x-data="{ open: @entangle('showStudentDropdown') }">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Cari Siswa (NIS / Nama) <span class="text-blue-600">*</span>
+                    </label>
+
+                    <div class="relative">
+                        <!-- Search Input -->
+                        <div class="relative">
+                            <input type="text"
+                                   wire:model.live.debounce.300ms="studentSearch"
+                                   @focus="open = true"
+                                   placeholder="Ketik NIS atau nama siswa (min 2 karakter)..."
+                                   autocomplete="off"
+                                   class="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+
+                            <!-- Search Icon -->
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+
+                            <!-- Clear Button -->
+                            @if($studentSearch)
+                                <button type="button"
+                                        wire:click="clearStudentSearch"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <svg class="w-5 h-5 text-slate-400 hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            @endif
+                        </div>
+
+                        <!-- Search Results Dropdown -->
+                        @if($showStudentDropdown && count($studentSearchResults) > 0)
+                            <div class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
+                                <div class="p-2">
+                                    <p class="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        {{ count($studentSearchResults) }} siswa ditemukan
+                                    </p>
+                                    @foreach($studentSearchResults as $student)
+                                        <button type="button"
+                                                wire:click="selectStudent({{ $student->id }})"
+                                                class="w-full text-left px-3 py-2.5 hover:bg-blue-50 rounded-lg transition-colors group">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <span class="text-sm font-bold text-blue-600">{{ substr($student->full_name, 0, 1) }}</span>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-semibold text-slate-900 truncate">{{ $student->full_name }}</p>
+                                                    <p class="text-xs text-slate-500">
+                                                        NIS: {{ $student->nis }} • {{ $student->class->name }} ({{ $student->class->department->code }})
+                                                    </p>
+                                                </div>
+                                                <svg class="w-5 h-5 text-slate-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @elseif($showStudentDropdown && $studentSearch && strlen($studentSearch) >= 2)
+                            <div class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-4">
+                                <div class="text-center text-sm text-slate-500">
+                                    <svg class="w-12 h-12 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <p class="font-medium">Siswa tidak ditemukan</p>
+                                    <p class="text-xs mt-1">Coba kata kunci lain atau pilih kelas terlebih dahulu</p>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Selected Student Display -->
+                        @if($selectedStudentData)
+                            <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <span class="text-sm font-bold text-white">{{ substr($selectedStudentData->full_name, 0, 1) }}</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-semibold text-slate-900">{{ $selectedStudentData->full_name }}</p>
+                                        <p class="text-xs text-slate-600">
+                                            NIS: {{ $selectedStudentData->nis }} • {{ $selectedStudentData->class->name }} ({{ $selectedStudentData->class->department->code }})
+                                        </p>
+                                    </div>
+                                    <button type="button"
+                                            wire:click="clearStudentSearch"
+                                            class="text-slate-400 hover:text-slate-600">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    @error('selectedStudent')
+                        <p class="mt-1 text-sm text-slate-600">{{ $message }}</p>
+                    @enderror
+
+                    <p class="mt-2 text-xs text-slate-500">
+                        Tip: Ketik minimal 2 karakter untuk mencari. Bisa cari berdasarkan NIS atau nama siswa.
+                    </p>
+                </div>
+
+                <!-- OR Divider -->
+                <div class="md:col-span-2 relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-white px-2 text-slate-500 font-semibold">Atau pilih manual</span>
+                    </div>
+                </div>
+
+                <!-- Date Select -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Tanggal <span class="text-blue-600">*</span>
+                    </label>
+                    <input type="date"
+                           wire:model="selectedDate"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    @error('selectedDate')
+                        <p class="mt-1 text-sm text-slate-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Reason Textarea -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Alasan/Keterangan <span class="text-blue-600">*</span>
+                    </label>
+                    <textarea wire:model="reason"
+                              rows="4"
+                              placeholder="Masukkan alasan atau bukti bahwa siswa bolos (sumber informasi, saksi, dll)..."
+                              class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"></textarea>
+                    @error('reason')
+                        <p class="mt-1 text-sm text-slate-600">{{ $message }}</p>
+                    @enderror
+                    <p class="mt-1 text-xs text-slate-500">Contoh: Terlihat di warnet, dilaporkan wali murid, terlihat di mall, dll.</p>
+                </div>
+            </div>
+
+            <!-- Confirmation Notice -->
+            <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm text-slate-700">
+                            Dengan klik tombol <strong>"Mark Sebagai BOLOS"</strong>, Anda mengkonfirmasi bahwa siswa tersebut <strong>sengaja membolos</strong> dan akan mendapat nilai kehadiran <strong>0%</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+                <button type="button"
+                        wire:click="resetForm"
+                        class="px-6 py-2.5 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all font-medium">
+                    Reset Form
+                </button>
+                <button type="submit"
+                        :disabled="isProcessing"
+                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span wire:loading.remove wire:target="submitMarkBolos">Mark Sebagai BOLOS</span>
+                    <span wire:loading wire:target="submitMarkBolos">Menyimpan...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Card: What happens after marking bolos -->
+    <div class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-6">
+        <h3 class="text-lg font-bold text-slate-900 mb-3">Apa yang Terjadi Setelah Mark Bolos?</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-900 text-sm mb-1">Record Absensi</h4>
+                    <p class="text-xs text-slate-600">Status BOLOS tercatat di database dengan nilai 0%</p>
+                </div>
+            </div>
+
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-900 text-sm mb-1">Notifikasi Wali Murid</h4>
+                    <p class="text-xs text-slate-600">Wali murid akan diberitahu (fitur mendatang)</p>
+                </div>
+            </div>
+
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-900 text-sm mb-1">Rekap & Laporan</h4>
+                    <p class="text-xs text-slate-600">Terhitung dalam statistik dan laporan kehadiran</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    // Auto-clear success/error messages after 5 seconds
+    window.addEventListener('schedule-message-clear', () => {
+        setTimeout(() => {
+            @this.set('statusMessage', '');
+            @this.set('statusType', '');
+        }, 5000);
+    });
+</script>
+@endpush
