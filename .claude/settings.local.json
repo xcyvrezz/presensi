@@ -11,7 +11,13 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(dir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p 65002 u889841415@153.92.8.245 \"pwd && ls -la\")",
+      "Bash(ssh:*)",
+      "Bash(tar:*)",
+      "Bash(scp:*)"
     ]
   }
 }
