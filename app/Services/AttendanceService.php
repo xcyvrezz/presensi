@@ -566,7 +566,7 @@ class AttendanceService
             // Parse time with validation
             try {
                 $start = Carbon::parse($checkInStart);
-                $end = Carbon::parse($checkInEnd)->addHours(4); // Grace period
+                $end = Carbon::parse($checkInEnd); // No grace period - strict end time
             } catch (\Exception $e) {
                 Log::error('❌ Error parsing time settings: ' . $e->getMessage());
                 return [
@@ -575,7 +575,7 @@ class AttendanceService
                 ];
             }
 
-            // Validate time window
+            // Validate time window - strict check
             if ($now->lt($start)) {
                 $message = "⏰ CHECK-IN BELUM DIBUKA: Waktu check-in dimulai pukul {$checkInStart}. Sekarang: {$now->format('H:i')}";
                 Log::warning($message);
@@ -583,7 +583,7 @@ class AttendanceService
             }
 
             if ($now->gt($end)) {
-                $message = "⏰ CHECK-IN SUDAH DITUTUP: Waktu berakhir pukul {$checkInEnd} (+ 4 jam grace period). Sekarang: {$now->format('H:i')}. Hubungi wali kelas untuk absensi manual.";
+                $message = "⏰ CHECK-IN SUDAH DITUTUP: Batas waktu check-in berakhir pukul {$checkInEnd}. Sekarang: {$now->format('H:i')}. Hubungi wali kelas untuk absensi manual.";
                 Log::warning($message);
                 return ['valid' => false, 'message' => $message];
             }
@@ -604,14 +604,14 @@ class AttendanceService
                 Log::warning('Using hard-coded fallback times');
 
                 $start = Carbon::parse($checkInStart);
-                $end = Carbon::parse($checkInEnd)->addHours(4);
+                $end = Carbon::parse($checkInEnd); // No grace period for fallback too
 
                 if ($now->lt($start)) {
                     return ['valid' => false, 'message' => "⏰ Check-in belum dibuka. Mulai: {$checkInStart}"];
                 }
 
                 if ($now->gt($end)) {
-                    return ['valid' => false, 'message' => "⏰ Waktu check-in sudah ditutup. Hubungi wali kelas."];
+                    return ['valid' => false, 'message' => "⏰ Waktu check-in sudah ditutup (berakhir pukul {$checkInEnd}). Hubungi wali kelas."];
                 }
 
                 return ['valid' => true, 'message' => 'Time window valid (fallback)'];
@@ -684,7 +684,7 @@ class AttendanceService
             // Parse time with validation
             try {
                 $start = Carbon::parse($checkOutStart);
-                $end = Carbon::parse($checkOutEnd)->addHours(2); // Grace period
+                $end = Carbon::parse($checkOutEnd); // No grace period - strict end time
             } catch (\Exception $e) {
                 Log::error('❌ Error parsing time settings: ' . $e->getMessage());
                 return [
@@ -693,7 +693,7 @@ class AttendanceService
                 ];
             }
 
-            // Validate time window
+            // Validate time window - strict check
             if ($now->lt($start)) {
                 $message = "⏰ CHECK-OUT BELUM DIBUKA: Waktu check-out dimulai pukul {$checkOutStart}. Sekarang: {$now->format('H:i')}";
                 Log::warning($message);
@@ -701,7 +701,7 @@ class AttendanceService
             }
 
             if ($now->gt($end)) {
-                $message = "⏰ CHECK-OUT SUDAH DITUTUP: Waktu berakhir pukul {$checkOutEnd} (+ 2 jam grace period). Sekarang: {$now->format('H:i')}. Hubungi wali kelas untuk absensi manual.";
+                $message = "⏰ CHECK-OUT SUDAH DITUTUP: Batas waktu check-out berakhir pukul {$checkOutEnd}. Sekarang: {$now->format('H:i')}. Hubungi wali kelas untuk absensi manual.";
                 Log::warning($message);
                 return ['valid' => false, 'message' => $message];
             }
@@ -722,14 +722,14 @@ class AttendanceService
                 Log::warning('Using hard-coded fallback times');
 
                 $start = Carbon::parse($checkOutStart);
-                $end = Carbon::parse($checkOutEnd)->addHours(2);
+                $end = Carbon::parse($checkOutEnd); // No grace period for fallback too
 
                 if ($now->lt($start)) {
                     return ['valid' => false, 'message' => "⏰ Check-out belum dibuka. Mulai: {$checkOutStart}"];
                 }
 
                 if ($now->gt($end)) {
-                    return ['valid' => false, 'message' => "⏰ Waktu check-out sudah ditutup. Hubungi wali kelas."];
+                    return ['valid' => false, 'message' => "⏰ Waktu check-out sudah ditutup (berakhir pukul {$checkOutEnd}). Hubungi wali kelas."];
                 }
 
                 return ['valid' => true, 'message' => 'Time window valid (fallback)'];
@@ -819,19 +819,21 @@ class AttendanceService
             // Use custom time from event if available
             $todayEvent = $this->getTodayEvent();
             if ($todayEvent && $todayEvent->use_custom_times && $todayEvent->custom_check_out_normal) {
-                $checkOutStart = $todayEvent->custom_check_out_normal;
+                $checkOutNormal = $todayEvent->custom_check_out_normal;
             } else {
-                $checkOutStart = AttendanceSetting::getValue('check_out_start', '14:00:00');
+                // Use check_out_normal setting (waktu normal pulang) instead of check_out_start
+                $checkOutNormal = AttendanceSetting::getValue('check_out_normal', '15:30:00');
             }
 
             // Ensure string format
-            if ($checkOutStart instanceof \Carbon\Carbon) {
-                $checkOutStart = $checkOutStart->format('H:i:s');
+            if ($checkOutNormal instanceof \Carbon\Carbon) {
+                $checkOutNormal = $checkOutNormal->format('H:i:s');
             }
 
-            // PERBAIKAN: Parse threshold dengan tanggal yang sama dengan check-out time
-            $threshold = Carbon::createFromFormat('Y-m-d H:i:s', $checkOutTime->format('Y-m-d') . ' ' . $checkOutStart);
+            // Parse threshold dengan tanggal yang sama dengan check-out time
+            $threshold = Carbon::createFromFormat('Y-m-d H:i:s', $checkOutTime->format('Y-m-d') . ' ' . $checkOutNormal);
 
+            // If check-out before normal time, calculate early leave minutes
             if ($checkOutTime->lt($threshold)) {
                 return $threshold->diffInMinutes($checkOutTime);
             }
@@ -842,8 +844,8 @@ class AttendanceService
             Log::warning('Error in calculateEarlyLeaveMinutes, using default: ' . $e->getMessage());
 
             try {
-                $checkOutStart = '14:00:00'; // Hard-coded fallback
-                $threshold = Carbon::createFromFormat('Y-m-d H:i:s', $checkOutTime->format('Y-m-d') . ' ' . $checkOutStart);
+                $checkOutNormal = '15:30:00'; // Hard-coded fallback for normal check-out time
+                $threshold = Carbon::createFromFormat('Y-m-d H:i:s', $checkOutTime->format('Y-m-d') . ' ' . $checkOutNormal);
 
                 if ($checkOutTime->lt($threshold)) {
                     return $threshold->diffInMinutes($checkOutTime);
