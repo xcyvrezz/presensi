@@ -51,6 +51,18 @@ class AttendanceSettingSeeder extends Seeder
                 'display_order' => 3,
             ],
             [
+                'key' => 'auto_checkout_time',
+                'group' => 'time_windows',
+                'label' => 'Waktu Auto Check-out Mode',
+                'description' => 'Setelah waktu ini, sistem otomatis masuk mode check-out. Tap card = check-out',
+                'value_type' => 'time',
+                'value' => '12:00:00',
+                'default_value' => '12:00:00',
+                'validation_rules' => json_encode(['required', 'date_format:H:i:s']),
+                'is_editable' => true,
+                'display_order' => 3.5,
+            ],
+            [
                 'key' => 'check_out_start',
                 'group' => 'time_windows',
                 'label' => 'Waktu Mulai Check-out',

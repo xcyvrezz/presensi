@@ -218,7 +218,12 @@ class TappingStation extends Component
                     }
                 }
 
-                $soundType = $this->messageType === 'info' ? 'info' : 'error';
+                // Play appropriate sound based on message type
+                $soundType = match($this->messageType) {
+                    'info' => 'info',
+                    'warning' => 'warning',
+                    default => 'error'
+                };
                 $this->dispatch('play-sound', sound: $soundType);
             }
 
