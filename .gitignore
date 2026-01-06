@@ -13,7 +13,7 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
+# /public/build - COMMENTED: We need this for production hosting
 /public/hot
 /public/storage
 /storage/*.key
