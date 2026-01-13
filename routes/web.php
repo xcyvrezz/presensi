@@ -156,16 +156,28 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login');
         }
 
+        // Load role relationship if not already loaded
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
+        }
+
+        // Check if user has role assigned
+        if (!$user->role) {
+            abort(403, 'User tidak memiliki role yang valid. Hubungi administrator.');
+        }
+
         // Redirect based on user role
-        switch ($user->role) {
+        switch ($user->role->name) {
             case 'admin':
                 return redirect()->route('admin.dashboard');
+            case 'kepala_sekolah':
+                return redirect()->route('kepala-sekolah.dashboard');
             case 'wali_kelas':
                 return redirect()->route('wali-kelas.dashboard');
             case 'siswa':
                 return redirect()->route('student.dashboard');
             default:
-                abort(403, 'Role tidak dikenali.');
+                abort(403, 'Role tidak dikenali: ' . $user->role->name);
         }
     })->middleware('auth')->name('dashboard');
 
