@@ -364,92 +364,206 @@
         </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Filters & Export -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Date From -->
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Dari Tanggal</label>
-                <input type="date" wire:model.live="dateFrom"
-                       class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        <!-- Filter Header -->
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                </svg>
             </div>
-
-            <!-- Date To -->
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Sampai Tanggal</label>
-                <input type="date" wire:model.live="dateTo"
-                       class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                <h3 class="text-lg font-bold text-slate-900">Filter & Export Data Absensi</h3>
+                <p class="text-sm text-slate-600">Filter data dan export rekap bulanan</p>
             </div>
+        </div>
 
-            <!-- Department Filter -->
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Jurusan</label>
-                <select wire:model.live="departmentFilter"
-                        class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                    <option value="">Semua Jurusan</option>
-                    @foreach($departments as $dept)
-                        <option value="{{ $dept->id }}">{{ $dept->code }} - {{ $dept->name }}</option>
-                    @endforeach
-                </select>
+        @if (session()->has('error'))
+            <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-600 rounded-lg">
+                <p class="text-sm font-medium text-red-900">{{ session('error') }}</p>
             </div>
+        @endif
 
-            <!-- Class Filter -->
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Kelas</label>
-                <select wire:model.live="classFilter"
-                        class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        @if(!$departmentFilter) disabled @endif>
-                    <option value="">{{ $departmentFilter ? 'Semua Kelas' : 'Pilih Jurusan Dulu' }}</option>
-                    @foreach($classes as $class)
-                        <option value="{{ $class->id }}">{{ $class->name }}</option>
-                    @endforeach
-                </select>
+        <!-- Filter Section -->
+        <div class="mb-6">
+            <h4 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Filter Tampilan Data</h4>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Date From -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Dari Tanggal</label>
+                    <input type="date" wire:model.live="dateFrom"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                </div>
+
+                <!-- Date To -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Sampai Tanggal</label>
+                    <input type="date" wire:model.live="dateTo"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                </div>
+
+                <!-- Department Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Jurusan</label>
+                    <select wire:model.live="departmentFilter"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="">Semua Jurusan</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}">{{ $dept->code }} - {{ $dept->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Class Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Kelas</label>
+                    <select wire:model.live="classFilter"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            @if(!$departmentFilter) disabled @endif>
+                        <option value="">{{ $departmentFilter ? 'Semua Kelas' : 'Pilih Jurusan Dulu' }}</option>
+                        @foreach($classes as $class)
+                            <option value="{{ $class->id }}">{{ $class->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                    <select wire:model.live="statusFilter"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="">Semua Status</option>
+                        <option value="hadir">Hadir</option>
+                        <option value="terlambat">Terlambat</option>
+                        <option value="izin">Izin</option>
+                        <option value="sakit">Sakit</option>
+                        <option value="dispensasi">Dispensasi</option>
+                        <option value="alpha">Alpha</option>
+                        <option value="bolos">Bolos</option>
+                        <option value="pulang_cepat">Pulang Cepat</option>
+                    </select>
+                </div>
+
+                <!-- Method Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Metode</label>
+                    <select wire:model.live="methodFilter"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="">Semua Metode</option>
+                        <option value="nfc_mobile">📱 NFC Mobile</option>
+                        <option value="rfid_physical">💳 RFID Card</option>
+                        <option value="manual">✍️ Manual</option>
+                        <option value="system">🤖 System</option>
+                    </select>
+                </div>
+
+                <!-- Search -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Cari Siswa</label>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                           placeholder="Nama atau NIS..."
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                </div>
+
+                <!-- Reset Button -->
+                <div class="flex items-end">
+                    <button wire:click="resetFilters"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all font-medium">
+                        Reset Filter
+                    </button>
+                </div>
             </div>
+        </div>
 
-            <!-- Status Filter -->
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Status</label>
-                <select wire:model.live="statusFilter"
-                        class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                    <option value="">Semua Status</option>
-                    <option value="hadir">Hadir</option>
-                    <option value="terlambat">Terlambat</option>
-                    <option value="izin">Izin</option>
-                    <option value="sakit">Sakit</option>
-                    <option value="dispensasi">Dispensasi</option>
-                    <option value="alpha">Alpha</option>
-                    <option value="bolos">Bolos</option>
-                    <option value="pulang_cepat">Pulang Cepat</option>
-                </select>
+        <!-- Divider -->
+        <div class="border-t border-slate-200 my-6"></div>
+
+        <!-- Export Section with Highlight -->
+        <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-300 rounded-xl p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h4 class="text-sm font-bold text-blue-900 uppercase tracking-wider">📊 Export Rekap Bulanan</h4>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Month Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Bulan</label>
+                    <select wire:model="exportMonth"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white">
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                </div>
 
-            <!-- Method Filter -->
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Metode</label>
-                <select wire:model.live="methodFilter"
-                        class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                    <option value="">Semua Metode</option>
-                    <option value="nfc_mobile">📱 NFC Mobile</option>
-                    <option value="rfid_physical">💳 RFID Card</option>
-                    <option value="manual">✍️ Manual</option>
-                    <option value="system">🤖 System</option>
-                </select>
-            </div>
+                <!-- Year Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Tahun</label>
+                    <select wire:model="exportYear"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white">
+                        @for($year = date('Y'); $year >= 2020; $year--)
+                            <option value="{{ $year }}">{{ $year }}</option>
+                        @endfor
+                    </select>
+                </div>
 
-            <!-- Search -->
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Cari Siswa</label>
-                <input type="text" wire:model.live.debounce.300ms="search"
-                       placeholder="Nama atau NIS..."
-                       class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-            </div>
+                <!-- Info Kelas -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Kelas untuk Export</label>
+                    <div class="w-full px-4 py-2.5 border rounded-xl {{ $classFilter ? 'border-green-300 bg-green-50' : 'border-slate-200 bg-slate-50' }} flex items-center">
+                        @if($classFilter)
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm font-medium text-green-700">
+                                @foreach($classes as $class)
+                                    @if($class->id == $classFilter)
+                                        {{ $class->name }}
+                                    @endif
+                                @endforeach
+                            </span>
+                        @else
+                            <svg class="w-5 h-5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span class="text-sm text-slate-500">Pilih kelas di atas</span>
+                        @endif
+                    </div>
+                </div>
 
-            <!-- Reset Button -->
-            <div class="flex items-end">
-                <button wire:click="resetFilters"
-                        class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all font-medium">
-                    Reset Filter
-                </button>
+                <!-- Export Buttons -->
+                <div class="md:col-span-2 flex gap-2 items-end">
+                    <button wire:click="exportMonthlyExcel"
+                            @if(!$classFilter) disabled @endif
+                            class="flex-1 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-sm font-medium text-sm {{ $classFilter ? 'bg-green-600 hover:bg-green-700 text-white hover:shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span wire:loading.remove wire:target="exportMonthlyExcel">Excel</span>
+                        <span wire:loading wire:target="exportMonthlyExcel">...</span>
+                    </button>
+                    <button wire:click="exportMonthlyPdf"
+                            @if(!$classFilter) disabled @endif
+                            class="flex-1 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-sm font-medium text-sm {{ $classFilter ? 'bg-red-600 hover:bg-red-700 text-white hover:shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span wire:loading.remove wire:target="exportMonthlyPdf">PDF</span>
+                        <span wire:loading wire:target="exportMonthlyPdf">...</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

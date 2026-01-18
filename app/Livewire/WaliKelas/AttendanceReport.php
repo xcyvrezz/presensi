@@ -25,6 +25,10 @@ class AttendanceReport extends Component
     public $statusFilter = '';
     public $search = '';
 
+    // Monthly export filters
+    public $exportMonth;
+    public $exportYear;
+
     // Statistics
     public $totalPresent = 0;
     public $totalLate = 0;
@@ -46,6 +50,10 @@ class AttendanceReport extends Component
         // Set default date range (last 7 days)
         $this->dateTo = Carbon::today()->format('Y-m-d');
         $this->dateFrom = Carbon::today()->subDays(6)->format('Y-m-d');
+
+        // Set default month and year for export
+        $this->exportMonth = Carbon::now()->format('m');
+        $this->exportYear = Carbon::now()->format('Y');
 
         $this->calculateStatistics();
     }
@@ -190,6 +198,79 @@ class AttendanceReport extends Component
         ])->setPaper('a4', 'landscape');
 
         $fileName = 'Absensi_' . str_replace(' ', '_', $this->class->name) . '_' . ($this->dateFrom ?? 'All') . '_to_' . ($this->dateTo ?? 'All') . '_' . now()->format('YmdHis') . '.pdf';
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $fileName);
+    }
+
+    public function exportMonthlyExcel()
+    {
+        if (!$this->class) {
+            session()->flash('error', 'Anda tidak mengampu kelas manapun.');
+            return;
+        }
+
+        $monthName = Carbon::createFromDate($this->exportYear, $this->exportMonth, 1)
+            ->locale('id')
+            ->translatedFormat('F');
+
+        $fileName = 'Rekap_Absensi_' . str_replace(' ', '_', $this->class->name) . '_' . $monthName . '_' . $this->exportYear . '.xlsx';
+
+        return Excel::download(
+            new \App\Exports\MonthlyAttendanceExport(
+                $this->class->id,
+                $this->exportMonth,
+                $this->exportYear
+            ),
+            $fileName
+        );
+    }
+
+    public function exportMonthlyPdf()
+    {
+        if (!$this->class) {
+            session()->flash('error', 'Anda tidak mengampu kelas manapun.');
+            return;
+        }
+
+        // Get all students in this class
+        $students = \App\Models\Student::where('class_id', $this->class->id)
+            ->active()
+            ->orderBy('full_name')
+            ->get();
+
+        // Calculate attendance summary for each student
+        $attendanceData = [];
+        foreach ($students as $student) {
+            $attendances = Attendance::where('student_id', $student->id)
+                ->whereYear('date', $this->exportYear)
+                ->whereMonth('date', $this->exportMonth)
+                ->get();
+
+            $attendanceData[] = [
+                'student' => $student,
+                'hadir' => $attendances->where('status', 'hadir')->count(),
+                'terlambat' => $attendances->where('status', 'terlambat')->count(),
+                'izin' => $attendances->where('status', 'izin')->count(),
+                'sakit' => $attendances->where('status', 'sakit')->count(),
+                'bolos' => $attendances->where('status', 'bolos')->count(),
+                'alpha' => $attendances->where('status', 'alpha')->count(),
+            ];
+        }
+
+        $monthName = Carbon::createFromDate($this->exportYear, $this->exportMonth, 1)
+            ->locale('id')
+            ->translatedFormat('F');
+
+        $pdf = Pdf::loadView('exports.monthly-attendance-pdf', [
+            'attendanceData' => $attendanceData,
+            'class' => $this->class,
+            'month' => $monthName,
+            'year' => $this->exportYear,
+        ])->setPaper('a4', 'landscape');
+
+        $fileName = 'Rekap_Absensi_' . str_replace(' ', '_', $this->class->name) . '_' . $monthName . '_' . $this->exportYear . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
