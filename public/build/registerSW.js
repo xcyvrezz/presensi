@@ -1,1 +1,1 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('http://localhost/absensi-mifare/public/build/sw.js', { scope: 'http://localhost/absensi-mifare/public/build/' })})}
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/build/sw.js', { scope: '/build/' })})}

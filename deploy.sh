@@ -36,10 +36,10 @@ print_warning() {
 # ============================================================================
 
 # SSH Configuration
-SSH_USER="your_username"
-SSH_HOST="your_domain.com"
+SSH_USER="u889841415"
+SSH_HOST="153.92.8.245"
 SSH_PORT="65002"
-SSH_PATH="/home/username/public_html"
+SSH_PATH="/home/u889841415/public_html"
 
 # Git Configuration
 GIT_BRANCH="main"
