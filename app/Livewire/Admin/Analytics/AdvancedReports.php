@@ -20,34 +20,36 @@ use App\Exports\AttendanceExport;
 #[Title('Analitik & Laporan Lanjutan')]
 class AdvancedReports extends Component
 {
-    public $reportType = 'overview'; // overview, trends, comparison, detailed, timeanalysis, insights
-    public $dateRange = '30days';
-    public $customStartDate;
-    public $customEndDate;
+    // Filters
     public $selectedDepartment = '';
     public $selectedClass = '';
+    public $selectedStudent = '';
     public $selectedSemester = '';
 
-    public $chartData = [];
+    // Data
     public $statistics = [];
-    public $insights = [];
+    public $topDiligentStudents = [];
+    public $topAlphaStudents = [];
+    public $topLateStudents = [];
+    public $bestClasses = [];
+    public $attentionClasses = [];
+    public $studentDetail = null;
+    public $weeklyTrend = [];
+    public $statusDistribution = [];
 
     public function mount()
     {
-        $this->customStartDate = Carbon::now()->subDays(30)->format('Y-m-d');
-        $this->customEndDate = Carbon::now()->format('Y-m-d');
+        // Set default to active semester
+        $activeSemester = Semester::where('is_active', true)->first();
+        if ($activeSemester) {
+            $this->selectedSemester = $activeSemester->id;
+        }
 
         // Load initial data
         $this->loadAnalytics();
     }
 
-    public function updatedDateRange()
-    {
-        $this->setDateRangeFromPreset();
-        $this->loadAnalytics();
-    }
-
-    public function updatedReportType()
+    public function updatedSelectedSemester()
     {
         $this->loadAnalytics();
     }
@@ -55,92 +57,64 @@ class AdvancedReports extends Component
     public function updatedSelectedDepartment()
     {
         $this->selectedClass = '';
+        $this->selectedStudent = '';
         $this->loadAnalytics();
     }
 
     public function updatedSelectedClass()
     {
+        $this->selectedStudent = '';
         $this->loadAnalytics();
     }
 
-    public function applyCustomDate()
+    public function updatedSelectedStudent()
     {
-        $this->dateRange = 'custom';
         $this->loadAnalytics();
-    }
-
-    private function setDateRangeFromPreset()
-    {
-        switch ($this->dateRange) {
-            case '7days':
-                $this->customStartDate = Carbon::now()->subDays(7)->format('Y-m-d');
-                $this->customEndDate = Carbon::now()->format('Y-m-d');
-                break;
-            case '30days':
-                $this->customStartDate = Carbon::now()->subDays(30)->format('Y-m-d');
-                $this->customEndDate = Carbon::now()->format('Y-m-d');
-                break;
-            case '3months':
-                $this->customStartDate = Carbon::now()->subMonths(3)->format('Y-m-d');
-                $this->customEndDate = Carbon::now()->format('Y-m-d');
-                break;
-            case '6months':
-                $this->customStartDate = Carbon::now()->subMonths(6)->format('Y-m-d');
-                $this->customEndDate = Carbon::now()->format('Y-m-d');
-                break;
-            case 'semester':
-                $activeSemester = Semester::where('is_active', true)->first();
-                if ($activeSemester) {
-                    $this->customStartDate = $activeSemester->start_date->format('Y-m-d');
-                    $this->customEndDate = $activeSemester->end_date->format('Y-m-d');
-                }
-                break;
-        }
     }
 
     public function loadAnalytics()
     {
-        $startDate = Carbon::parse($this->customStartDate);
-        $endDate = Carbon::parse($this->customEndDate);
+        // Get semester date range
+        $semester = Semester::find($this->selectedSemester);
+        if (!$semester) {
+            return;
+        }
 
-        switch ($this->reportType) {
-            case 'overview':
-                $this->loadOverviewData($startDate, $endDate);
-                break;
-            case 'trends':
-                $this->loadTrendsData($startDate, $endDate);
-                break;
-            case 'comparison':
-                $this->loadComparisonData($startDate, $endDate);
-                break;
-            case 'detailed':
-                $this->loadDetailedData($startDate, $endDate);
-                break;
-            case 'timeanalysis':
-                $this->loadTimeAnalysisData($startDate, $endDate);
-                break;
-            case 'insights':
-                $this->loadInsightsData($startDate, $endDate);
-                break;
+        $startDate = Carbon::parse($semester->start_date);
+        $endDate = Carbon::parse($semester->end_date);
+
+        // Load all analytics data
+        $this->loadGeneralStatistics($startDate, $endDate);
+        $this->loadStudentRankings($startDate, $endDate);
+        $this->loadClassRankings($startDate, $endDate);
+        $this->loadWeeklyTrend($startDate, $endDate);
+        $this->loadStatusDistribution($startDate, $endDate);
+
+        // Load individual student detail if selected
+        if ($this->selectedStudent) {
+            $this->loadStudentDetail($startDate, $endDate);
+        } else {
+            $this->studentDetail = null;
         }
     }
 
-    private function loadOverviewData($startDate, $endDate)
+    private function loadGeneralStatistics($startDate, $endDate)
     {
         $query = Attendance::whereBetween('date', [
             $startDate->format('Y-m-d'),
             $endDate->format('Y-m-d')
         ]);
 
+        // Apply filters
         if ($this->selectedClass) {
-            $query->where('class_id', $this->selectedClass);
+            $query->whereHas('student', fn($q) => $q->where('class_id', $this->selectedClass));
         } elseif ($this->selectedDepartment) {
-            $query->whereHas('student.class', function ($q) {
-                $q->where('department_id', $this->selectedDepartment);
-            });
+            $query->whereHas('student.class', fn($q) => $q->where('department_id', $this->selectedDepartment));
         }
 
         $attendances = $query->get();
+
+        // Get total students based on filter
         $totalStudents = Student::where('is_active', true)
             ->when($this->selectedClass, fn($q) => $q->where('class_id', $this->selectedClass))
             ->when($this->selectedDepartment && !$this->selectedClass, function ($q) {
@@ -149,26 +123,12 @@ class AdvancedReports extends Component
             ->count();
 
         $workingDays = $this->getWorkingDays($startDate, $endDate);
-
-        // Calculate completion rate
-        $totalRecords = $attendances->count();
         $expectedRecords = $totalStudents * $workingDays;
-        $completionRate = $expectedRecords > 0 ? round(($totalRecords / $expectedRecords) * 100, 1) : 0;
-
-        // Calculate positive attendance (hadir, terlambat, dispensasi)
-        $positiveAttendance = $attendances->whereIn('status', ['hadir', 'terlambat', 'dispensasi'])->count();
-
-        // Calculate problem cases (alpha, bolos)
-        $problemCases = $attendances->whereIn('status', ['alpha', 'bolos'])->count();
 
         $this->statistics = [
-            'total_records' => $totalRecords,
             'total_students' => $totalStudents,
             'working_days' => $workingDays,
-            'expected_records' => $expectedRecords,
-            'completion_rate' => $completionRate,
-            'positive_attendance' => $positiveAttendance,
-            'problem_cases' => $problemCases,
+            'total_records' => $attendances->count(),
             'hadir' => $attendances->where('status', 'hadir')->count(),
             'terlambat' => $attendances->where('status', 'terlambat')->count(),
             'izin' => $attendances->where('status', 'izin')->count(),
@@ -176,130 +136,82 @@ class AdvancedReports extends Component
             'alpha' => $attendances->where('status', 'alpha')->count(),
             'dispensasi' => $attendances->where('status', 'dispensasi')->count(),
             'bolos' => $attendances->where('status', 'bolos')->count(),
-            'pulang_cepat' => $attendances->where('status', 'pulang_cepat')->count(),
-            'lupa_checkout' => $attendances->filter(function($a) {
-                return $a->check_in_time && !$a->check_out_time && in_array($a->status, ['hadir', 'terlambat']);
-            })->count(),
             'avg_late_minutes' => round($attendances->where('status', 'terlambat')->avg('late_minutes') ?? 0, 1),
-            'max_late_minutes' => $attendances->where('status', 'terlambat')->max('late_minutes') ?? 0,
-            'avg_percentage' => round($attendances->avg('percentage') ?? 0, 1),
             'attendance_rate' => $expectedRecords > 0
-                ? round(($positiveAttendance / $expectedRecords) * 100, 1)
+                ? round((($attendances->whereIn('status', ['hadir', 'terlambat', 'dispensasi'])->count()) / $expectedRecords) * 100, 1)
                 : 0,
         ];
-
-        // Pie chart data for status distribution
-        $this->chartData['statusDistribution'] = [
-            'labels' => ['Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alpha', 'Dispensasi', 'Bolos', 'Pulang Cepat'],
-            'data' => [
-                $this->statistics['hadir'],
-                $this->statistics['terlambat'],
-                $this->statistics['izin'],
-                $this->statistics['sakit'],
-                $this->statistics['alpha'],
-                $this->statistics['dispensasi'],
-                $this->statistics['bolos'],
-                $this->statistics['pulang_cepat'],
-            ],
-            'colors' => [
-                '#10b981', // hadir - green
-                '#f59e0b', // terlambat - yellow
-                '#3b82f6', // izin - blue
-                '#a855f7', // sakit - purple
-                '#6b7280', // alpha - gray
-                '#06b6d4', // dispensasi - cyan
-                '#ef4444', // bolos - red
-                '#f97316', // pulang_cepat - orange
-            ],
-        ];
     }
 
-    private function loadTrendsData($startDate, $endDate)
+    private function loadWeeklyTrend($startDate, $endDate)
     {
-        $period = CarbonPeriod::create($startDate, $endDate);
-        $dates = [];
-        $hadirData = [];
-        $terlambatData = [];
-        $izinData = [];
-        $sakitData = [];
+        // Get last 4 weeks of data
+        $weeks = [];
+        $currentWeekStart = Carbon::now()->startOfWeek();
 
-        foreach ($period as $date) {
-            if ($date->isWeekday()) {
-                $dates[] = $date->format('d/m');
+        for ($i = 3; $i >= 0; $i--) {
+            $weekStart = $currentWeekStart->copy()->subWeeks($i);
+            $weekEnd = $weekStart->copy()->endOfWeek();
 
-                $dayAttendances = Attendance::whereDate('date', $date)
-                    ->when($this->selectedClass, fn($q) => $q->where('class_id', $this->selectedClass))
-                    ->when($this->selectedDepartment && !$this->selectedClass, function ($q) {
-                        $q->whereHas('student.class', fn($sq) => $sq->where('department_id', $this->selectedDepartment));
-                    })
-                    ->get();
-
-                $hadirData[] = $dayAttendances->where('status', 'hadir')->count();
-                $terlambatData[] = $dayAttendances->where('status', 'terlambat')->count();
-                $izinData[] = $dayAttendances->where('status', 'izin')->count();
-                $sakitData[] = $dayAttendances->where('status', 'sakit')->count();
+            // Make sure we're within the semester range
+            if ($weekStart->lt($startDate)) {
+                $weekStart = $startDate->copy();
             }
+            if ($weekEnd->gt($endDate)) {
+                $weekEnd = $endDate->copy();
+            }
+
+            $query = Attendance::whereBetween('date', [
+                $weekStart->format('Y-m-d'),
+                $weekEnd->format('Y-m-d')
+            ]);
+
+            if ($this->selectedClass) {
+                $query->whereHas('student', fn($q) => $q->where('class_id', $this->selectedClass));
+            } elseif ($this->selectedDepartment) {
+                $query->whereHas('student.class', fn($q) => $q->where('department_id', $this->selectedDepartment));
+            }
+
+            $attendances = $query->get();
+
+            $weeks[] = [
+                'label' => 'Minggu ' . $weekStart->format('d/m'),
+                'hadir' => $attendances->where('status', 'hadir')->count(),
+                'terlambat' => $attendances->where('status', 'terlambat')->count(),
+                'alpha' => $attendances->where('status', 'alpha')->count(),
+            ];
         }
 
-        $this->chartData['trends'] = [
-            'labels' => $dates,
-            'datasets' => [
-                ['label' => 'Hadir', 'data' => $hadirData],
-                ['label' => 'Terlambat', 'data' => $terlambatData],
-                ['label' => 'Izin', 'data' => $izinData],
-                ['label' => 'Sakit', 'data' => $sakitData],
-            ],
-        ];
+        $this->weeklyTrend = $weeks;
     }
 
-    private function loadComparisonData($startDate, $endDate)
+    private function loadStatusDistribution($startDate, $endDate)
     {
-        $departments = Department::with('classes')->get();
-        $labels = [];
-        $hadirData = [];
-        $terlambatData = [];
-        $attendanceRates = [];
+        $query = Attendance::whereBetween('date', [
+            $startDate->format('Y-m-d'),
+            $endDate->format('Y-m-d')
+        ]);
 
-        foreach ($departments as $dept) {
-            $labels[] = $dept->code;
-
-            $deptAttendances = Attendance::whereBetween('date', [
-                    $startDate->format('Y-m-d'),
-                    $endDate->format('Y-m-d')
-                ])
-                ->whereHas('student.class', fn($q) => $q->where('department_id', $dept->id))
-                ->get();
-
-            $hadirData[] = $deptAttendances->where('status', 'hadir')->count();
-            $terlambatData[] = $deptAttendances->where('status', 'terlambat')->count();
-
-            $deptStudents = Student::whereHas('class', fn($q) => $q->where('department_id', $dept->id))
-                ->where('is_active', true)
-                ->count();
-
-            $workingDays = $this->getWorkingDays($startDate, $endDate);
-            $expected = $deptStudents * $workingDays;
-
-            $attendanceRates[] = $expected > 0
-                ? round(($deptAttendances->whereIn('status', ['hadir', 'terlambat'])->count() / $expected) * 100, 1)
-                : 0;
+        if ($this->selectedClass) {
+            $query->whereHas('student', fn($q) => $q->where('class_id', $this->selectedClass));
+        } elseif ($this->selectedDepartment) {
+            $query->whereHas('student.class', fn($q) => $q->where('department_id', $this->selectedDepartment));
         }
 
-        $this->chartData['comparison'] = [
-            'labels' => $labels,
-            'datasets' => [
-                ['label' => 'Hadir', 'data' => $hadirData],
-                ['label' => 'Terlambat', 'data' => $terlambatData],
-            ],
-        ];
+        $attendances = $query->get();
 
-        $this->chartData['attendanceRates'] = [
-            'labels' => $labels,
-            'data' => $attendanceRates,
+        $this->statusDistribution = [
+            ['status' => 'Hadir', 'count' => $attendances->where('status', 'hadir')->count(), 'color' => 'green'],
+            ['status' => 'Terlambat', 'count' => $attendances->where('status', 'terlambat')->count(), 'color' => 'yellow'],
+            ['status' => 'Izin', 'count' => $attendances->where('status', 'izin')->count(), 'color' => 'blue'],
+            ['status' => 'Sakit', 'count' => $attendances->where('status', 'sakit')->count(), 'color' => 'purple'],
+            ['status' => 'Alpha', 'count' => $attendances->where('status', 'alpha')->count(), 'color' => 'gray'],
+            ['status' => 'Dispensasi', 'count' => $attendances->where('status', 'dispensasi')->count(), 'color' => 'cyan'],
+            ['status' => 'Bolos', 'count' => $attendances->where('status', 'bolos')->count(), 'color' => 'red'],
         ];
     }
 
-    private function loadDetailedData($startDate, $endDate)
+    private function loadStudentRankings($startDate, $endDate)
     {
         $query = Student::where('is_active', true);
 
@@ -309,18 +221,49 @@ class AdvancedReports extends Component
             $query->whereHas('class', fn($q) => $q->where('department_id', $this->selectedDepartment));
         }
 
-        // Top 10 most punctual students (highest attendance count)
-        $topStudents = (clone $query)
-            ->withCount(['attendances as hadir_count' => function ($q) use ($startDate, $endDate) {
+        $workingDays = $this->getWorkingDays($startDate, $endDate);
+
+        // Top 10 most diligent students (based on attendance rate and punctuality)
+        $this->topDiligentStudents = (clone $query)
+            ->with('class')
+            ->withCount([
+                'attendances as hadir_count' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                      ->where('status', 'hadir');
+                },
+                'attendances as total_attendance' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                      ->whereIn('status', ['hadir', 'terlambat', 'dispensasi']);
+                }
+            ])
+            ->get()
+            ->map(function($student) use ($workingDays) {
+                $student->attendance_rate = $workingDays > 0
+                    ? round(($student->total_attendance / $workingDays) * 100, 1)
+                    : 0;
+                return $student;
+            })
+            ->sortByDesc(function($student) {
+                return ($student->attendance_rate * 100) + $student->hadir_count;
+            })
+            ->take(10)
+            ->values();
+
+        // Top 10 students with most alpha
+        $this->topAlphaStudents = (clone $query)
+            ->with('class')
+            ->withCount(['attendances as alpha_count' => function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                  ->where('status', 'hadir');
+                  ->where('status', 'alpha');
             }])
-            ->orderBy('hadir_count', 'desc')
+            ->having('alpha_count', '>', 0)
+            ->orderBy('alpha_count', 'desc')
             ->limit(10)
             ->get();
 
-        // Top 10 most late students
-        $lateStudents = (clone $query)
+        // Top 10 students who are frequently late
+        $this->topLateStudents = (clone $query)
+            ->with('class')
             ->withCount(['attendances as late_count' => function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                   ->where('status', 'terlambat');
@@ -329,266 +272,105 @@ class AdvancedReports extends Component
             ->orderBy('late_count', 'desc')
             ->limit(10)
             ->get();
-
-        // Students with most absences (alpha + bolos)
-        $absentStudents = (clone $query)
-            ->withCount(['attendances as absent_count' => function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                  ->whereIn('status', ['alpha', 'bolos']);
-            }])
-            ->having('absent_count', '>', 0)
-            ->orderBy('absent_count', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Students with perfect attendance (100% attendance rate)
-        $perfectStudents = (clone $query)
-            ->withCount(['attendances as total_attendance' => function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
-            }])
-            ->withCount(['attendances as hadir_only' => function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                  ->where('status', 'hadir');
-            }])
-            ->get()
-            ->filter(function($student) {
-                return $student->total_attendance > 0 && $student->total_attendance == $student->hadir_only;
-            })
-            ->take(10);
-
-        $this->statistics['top_students'] = $topStudents;
-        $this->statistics['late_students'] = $lateStudents;
-        $this->statistics['absent_students'] = $absentStudents;
-        $this->statistics['perfect_students'] = $perfectStudents;
     }
 
-    private function loadTimeAnalysisData($startDate, $endDate)
+    private function loadClassRankings($startDate, $endDate)
     {
-        $query = Attendance::whereBetween('date', [
-            $startDate->format('Y-m-d'),
-            $endDate->format('Y-m-d')
-        ]);
-
+        // Skip if a specific class is selected
         if ($this->selectedClass) {
-            $query->where('class_id', $this->selectedClass);
-        } elseif ($this->selectedDepartment) {
-            $query->whereHas('student.class', function ($q) {
-                $q->where('department_id', $this->selectedDepartment);
-            });
+            $this->bestClasses = [];
+            $this->attentionClasses = [];
+            return;
         }
 
-        $attendances = $query->get();
+        $classesQuery = Classes::query();
 
-        // Analyze check-in time patterns (group by hour)
-        $checkInHours = [];
-        $lateArrivalHours = [];
-
-        foreach ($attendances as $attendance) {
-            if ($attendance->check_in_time) {
-                $hour = Carbon::parse($attendance->check_in_time)->format('H:00');
-
-                if (!isset($checkInHours[$hour])) {
-                    $checkInHours[$hour] = 0;
-                }
-                $checkInHours[$hour]++;
-
-                if ($attendance->status === 'terlambat') {
-                    if (!isset($lateArrivalHours[$hour])) {
-                        $lateArrivalHours[$hour] = 0;
-                    }
-                    $lateArrivalHours[$hour]++;
-                }
-            }
+        if ($this->selectedDepartment) {
+            $classesQuery->where('department_id', $this->selectedDepartment);
         }
 
-        // Sort by hour
-        ksort($checkInHours);
-        ksort($lateArrivalHours);
-
-        // Day of week analysis
-        $dayOfWeekData = [
-            'Monday' => ['hadir' => 0, 'terlambat' => 0, 'absent' => 0],
-            'Tuesday' => ['hadir' => 0, 'terlambat' => 0, 'absent' => 0],
-            'Wednesday' => ['hadir' => 0, 'terlambat' => 0, 'absent' => 0],
-            'Thursday' => ['hadir' => 0, 'terlambat' => 0, 'absent' => 0],
-            'Friday' => ['hadir' => 0, 'terlambat' => 0, 'absent' => 0],
-        ];
-
-        foreach ($attendances as $attendance) {
-            $dayName = Carbon::parse($attendance->date)->format('l');
-
-            if (isset($dayOfWeekData[$dayName])) {
-                if ($attendance->status === 'hadir') {
-                    $dayOfWeekData[$dayName]['hadir']++;
-                } elseif ($attendance->status === 'terlambat') {
-                    $dayOfWeekData[$dayName]['terlambat']++;
-                } elseif (in_array($attendance->status, ['alpha', 'bolos'])) {
-                    $dayOfWeekData[$dayName]['absent']++;
-                }
-            }
-        }
-
-        // Late duration distribution
-        $lateDurations = [
-            '1-15 menit' => 0,
-            '16-30 menit' => 0,
-            '31-60 menit' => 0,
-            '> 60 menit' => 0,
-        ];
-
-        foreach ($attendances->where('status', 'terlambat') as $attendance) {
-            $minutes = $attendance->late_minutes ?? 0;
-
-            if ($minutes <= 15) {
-                $lateDurations['1-15 menit']++;
-            } elseif ($minutes <= 30) {
-                $lateDurations['16-30 menit']++;
-            } elseif ($minutes <= 60) {
-                $lateDurations['31-60 menit']++;
-            } else {
-                $lateDurations['> 60 menit']++;
-            }
-        }
-
-        $this->chartData['checkInPattern'] = [
-            'labels' => array_keys($checkInHours),
-            'data' => array_values($checkInHours),
-        ];
-
-        $this->chartData['lateArrivalPattern'] = [
-            'labels' => array_keys($lateArrivalHours),
-            'data' => array_values($lateArrivalHours),
-        ];
-
-        $this->chartData['dayOfWeek'] = $dayOfWeekData;
-        $this->chartData['lateDurations'] = $lateDurations;
-    }
-
-    private function loadInsightsData($startDate, $endDate)
-    {
-        $query = Attendance::whereBetween('date', [
-            $startDate->format('Y-m-d'),
-            $endDate->format('Y-m-d')
-        ]);
-
-        if ($this->selectedClass) {
-            $query->where('class_id', $this->selectedClass);
-        } elseif ($this->selectedDepartment) {
-            $query->whereHas('student.class', function ($q) {
-                $q->where('department_id', $this->selectedDepartment);
-            });
-        }
-
-        $attendances = $query->get();
+        $classes = $classesQuery->with('department')->get();
         $workingDays = $this->getWorkingDays($startDate, $endDate);
+        $classRankings = [];
 
-        // Calculate insights
-        $this->insights = [];
+        foreach ($classes as $class) {
+            $classAttendances = Attendance::whereBetween('date', [
+                    $startDate->format('Y-m-d'),
+                    $endDate->format('Y-m-d')
+                ])
+                ->whereHas('student', fn($q) => $q->where('class_id', $class->id))
+                ->get();
 
-        // 1. Attendance Trend (comparing first half vs second half)
-        $midDate = $startDate->copy()->addDays((int)(($endDate->diffInDays($startDate)) / 2));
+            $classStudents = Student::where('class_id', $class->id)
+                ->where('is_active', true)
+                ->count();
 
-        $firstHalf = $attendances->where('date', '<=', $midDate->format('Y-m-d'));
-        $secondHalf = $attendances->where('date', '>', $midDate->format('Y-m-d'));
+            $expected = $classStudents * $workingDays;
 
-        $firstHalfRate = $firstHalf->count() > 0
-            ? round(($firstHalf->whereIn('status', ['hadir', 'terlambat'])->count() / $firstHalf->count()) * 100, 1)
-            : 0;
-        $secondHalfRate = $secondHalf->count() > 0
-            ? round(($secondHalf->whereIn('status', ['hadir', 'terlambat'])->count() / $secondHalf->count()) * 100, 1)
-            : 0;
+            if ($expected > 0 && $classStudents > 0) {
+                $hadirCount = $classAttendances->whereIn('status', ['hadir', 'terlambat', 'dispensasi'])->count();
+                $rate = round(($hadirCount / $expected) * 100, 1);
 
-        $trendChange = $secondHalfRate - $firstHalfRate;
-
-        $this->insights['trend'] = [
-            'direction' => $trendChange > 0 ? 'up' : ($trendChange < 0 ? 'down' : 'stable'),
-            'change' => abs($trendChange),
-            'first_half' => $firstHalfRate,
-            'second_half' => $secondHalfRate,
-        ];
-
-        // 2. Most problematic day
-        $dayProblems = [];
-        $period = CarbonPeriod::create($startDate, $endDate);
-
-        foreach ($period as $date) {
-            if ($date->isWeekday()) {
-                $dayAttendances = $attendances->where('date', $date->format('Y-m-d'));
-                $problemCount = $dayAttendances->whereIn('status', ['alpha', 'bolos', 'terlambat'])->count();
-
-                if ($problemCount > 0) {
-                    $dayProblems[] = [
-                        'date' => $date->format('Y-m-d'),
-                        'day_name' => $date->format('l'),
-                        'problem_count' => $problemCount,
-                    ];
-                }
+                $classRankings[] = [
+                    'class' => $class,
+                    'rate' => $rate,
+                    'total_students' => $classStudents,
+                    'alpha_count' => $classAttendances->where('status', 'alpha')->count(),
+                    'late_count' => $classAttendances->where('status', 'terlambat')->count(),
+                ];
             }
         }
 
-        usort($dayProblems, function($a, $b) {
-            return $b['problem_count'] - $a['problem_count'];
+        // Sort by rate descending for best classes
+        usort($classRankings, function($a, $b) {
+            return $b['rate'] <=> $a['rate'];
         });
 
-        $this->insights['worst_days'] = array_slice($dayProblems, 0, 5);
+        $this->bestClasses = array_slice($classRankings, 0, 5);
 
-        // 3. Classes that need attention (if not filtered by class)
-        if (!$this->selectedClass) {
-            $classesQuery = Classes::query();
+        // Sort by rate ascending for classes that need attention
+        usort($classRankings, function($a, $b) {
+            return $a['rate'] <=> $b['rate'];
+        });
 
-            if ($this->selectedDepartment) {
-                $classesQuery->where('department_id', $this->selectedDepartment);
-            }
+        $this->attentionClasses = array_slice($classRankings, 0, 5);
+    }
 
-            $classes = $classesQuery->get();
-            $classAttendanceRates = [];
+    private function loadStudentDetail($startDate, $endDate)
+    {
+        $student = Student::with('class.department')->find($this->selectedStudent);
 
-            foreach ($classes as $class) {
-                $classAttendances = Attendance::whereBetween('date', [
-                        $startDate->format('Y-m-d'),
-                        $endDate->format('Y-m-d')
-                    ])
-                    ->where('class_id', $class->id)
-                    ->get();
-
-                $classStudents = Student::where('class_id', $class->id)
-                    ->where('is_active', true)
-                    ->count();
-
-                $expected = $classStudents * $workingDays;
-
-                if ($expected > 0) {
-                    $rate = round(($classAttendances->whereIn('status', ['hadir', 'terlambat'])->count() / $expected) * 100, 1);
-
-                    $classAttendanceRates[] = [
-                        'class_name' => $class->name,
-                        'rate' => $rate,
-                        'problem_count' => $classAttendances->whereIn('status', ['alpha', 'bolos'])->count(),
-                    ];
-                }
-            }
-
-            usort($classAttendanceRates, function($a, $b) {
-                return $a['rate'] - $b['rate'];
-            });
-
-            $this->insights['attention_classes'] = array_slice($classAttendanceRates, 0, 5);
+        if (!$student) {
+            $this->studentDetail = null;
+            return;
         }
 
-        // 4. Peak late hours
-        $peakLateHours = [];
-        foreach ($attendances->where('status', 'terlambat') as $attendance) {
-            if ($attendance->check_in_time) {
-                $hour = Carbon::parse($attendance->check_in_time)->format('H:00');
-                if (!isset($peakLateHours[$hour])) {
-                    $peakLateHours[$hour] = 0;
-                }
-                $peakLateHours[$hour]++;
-            }
-        }
+        $attendances = Attendance::where('student_id', $student->id)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->orderBy('date', 'desc')
+            ->get();
 
-        arsort($peakLateHours);
-        $this->insights['peak_late_hours'] = array_slice($peakLateHours, 0, 3, true);
+        $workingDays = $this->getWorkingDays($startDate, $endDate);
+
+        $hadirCount = $attendances->where('status', 'hadir')->count();
+        $terlambatCount = $attendances->where('status', 'terlambat')->count();
+        $totalKehadiran = $hadirCount + $terlambatCount + $attendances->where('status', 'dispensasi')->count();
+
+        $this->studentDetail = [
+            'student' => $student,
+            'working_days' => $workingDays,
+            'hadir' => $hadirCount,
+            'terlambat' => $terlambatCount,
+            'izin' => $attendances->where('status', 'izin')->count(),
+            'sakit' => $attendances->where('status', 'sakit')->count(),
+            'alpha' => $attendances->where('status', 'alpha')->count(),
+            'dispensasi' => $attendances->where('status', 'dispensasi')->count(),
+            'bolos' => $attendances->where('status', 'bolos')->count(),
+            'total_kehadiran' => $totalKehadiran,
+            'attendance_rate' => $workingDays > 0 ? round(($totalKehadiran / $workingDays) * 100, 1) : 0,
+            'avg_late_minutes' => round($attendances->where('status', 'terlambat')->avg('late_minutes') ?? 0, 1),
+            'recent_attendances' => $attendances->take(10),
+        ];
     }
 
     private function getWorkingDays($startDate, $endDate)
@@ -611,15 +393,21 @@ class AdvancedReports extends Component
 
     public function exportExcel()
     {
-        $fileName = 'Laporan_Analitik_' . $this->reportType . '_' . now()->format('YmdHis') . '.xlsx';
+        $semester = Semester::find($this->selectedSemester);
+        if (!$semester) {
+            session()->flash('error', 'Semester tidak ditemukan.');
+            return;
+        }
+
+        $fileName = 'Laporan_Analitik_' . $semester->name . '_' . now()->format('YmdHis') . '.xlsx';
 
         return Excel::download(
             new AttendanceExport(
-                $this->customStartDate,
-                $this->customEndDate,
+                $semester->start_date->format('Y-m-d'),
+                $semester->end_date->format('Y-m-d'),
                 $this->selectedDepartment,
                 $this->selectedClass,
-                '',
+                $this->selectedStudent,
                 '',
                 ''
             ),
@@ -629,22 +417,32 @@ class AdvancedReports extends Component
 
     public function exportPdf()
     {
-        $startDate = Carbon::parse($this->customStartDate);
-        $endDate = Carbon::parse($this->customEndDate);
+        $semester = Semester::find($this->selectedSemester);
+        if (!$semester) {
+            session()->flash('error', 'Semester tidak ditemukan.');
+            return;
+        }
 
         // Reload data to ensure we have fresh data
         $this->loadAnalytics();
 
         $pdf = Pdf::loadView('exports.analytics-pdf', [
-            'reportType' => $this->reportType,
-            'dateFrom' => $this->customStartDate,
-            'dateTo' => $this->customEndDate,
+            'semester' => $semester,
+            'selectedDepartment' => $this->selectedDepartment,
+            'selectedClass' => $this->selectedClass,
+            'selectedStudent' => $this->selectedStudent,
             'statistics' => $this->statistics,
-            'chartData' => $this->chartData,
-            'insights' => $this->insights,
+            'topDiligentStudents' => $this->topDiligentStudents,
+            'topAlphaStudents' => $this->topAlphaStudents,
+            'topLateStudents' => $this->topLateStudents,
+            'bestClasses' => $this->bestClasses,
+            'attentionClasses' => $this->attentionClasses,
+            'studentDetail' => $this->studentDetail,
+            'weeklyTrend' => $this->weeklyTrend,
+            'statusDistribution' => $this->statusDistribution,
         ])->setPaper('a4', 'landscape');
 
-        $fileName = 'Laporan_Analitik_' . $this->reportType . '_' . now()->format('YmdHis') . '.pdf';
+        $fileName = 'Laporan_Analitik_' . $semester->name . '_' . now()->format('YmdHis') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
@@ -654,15 +452,29 @@ class AdvancedReports extends Component
     public function render()
     {
         $departments = Department::orderBy('name')->get();
+
         $classes = Classes::when($this->selectedDepartment, function ($q) {
                 return $q->where('department_id', $this->selectedDepartment);
             })
             ->orderBy('name')
             ->get();
 
+        $students = Student::where('is_active', true)
+            ->when($this->selectedClass, function ($q) {
+                return $q->where('class_id', $this->selectedClass);
+            })
+            ->orderBy('full_name')
+            ->get();
+
+        $semesters = Semester::orderBy('academic_year', 'desc')
+            ->orderBy('name', 'desc')
+            ->get();
+
         return view('livewire.admin.analytics.advanced-reports', [
             'departments' => $departments,
             'classes' => $classes,
+            'students' => $students,
+            'semesters' => $semesters,
         ]);
     }
 }
