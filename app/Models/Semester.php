@@ -96,4 +96,43 @@ class Semester extends Model
         return $query->where('start_date', '<=', $today)
             ->where('end_date', '>=', $today);
     }
+
+    /**
+     * Find semesters that overlap with given date range
+     */
+    public static function findOverlapping($startDate, $endDate)
+    {
+        $startDate = is_string($startDate) ? \Carbon\Carbon::parse($startDate) : $startDate;
+        $endDate = is_string($endDate) ? \Carbon\Carbon::parse($endDate) : $endDate;
+
+        return static::where(function($query) use ($startDate, $endDate) {
+            $query->where(function($q) use ($startDate, $endDate) {
+                // Semester overlaps with our date range
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                  ->orWhereBetween('end_date', [$startDate, $endDate])
+                  ->orWhere(function($subQ) use ($startDate, $endDate) {
+                      $subQ->where('start_date', '<=', $startDate)
+                           ->where('end_date', '>=', $endDate);
+                  });
+            });
+        })->get();
+    }
+
+    /**
+     * Get the intersection of a date range with this semester's boundaries
+     * Returns [actualStartDate, actualEndDate]
+     */
+    public function getIntersectionDates($startDate, $endDate): array
+    {
+        $startDate = is_string($startDate) ? \Carbon\Carbon::parse($startDate) : $startDate;
+        $endDate = is_string($endDate) ? \Carbon\Carbon::parse($endDate) : $endDate;
+
+        // Get the later of the two start dates
+        $actualStart = $startDate->gt($this->start_date) ? $startDate : $this->start_date;
+
+        // Get the earlier of the two end dates
+        $actualEnd = $endDate->lt($this->end_date) ? $endDate : $this->end_date;
+
+        return [$actualStart, $actualEnd];
+    }
 }
