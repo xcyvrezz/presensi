@@ -4,7 +4,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Input Absensi Manual</h1>
-                <p class="text-sm sm:text-base text-slate-600 mt-1">Input manual untuk siswa yang Izin, Sakit, atau Dispensasi</p>
+                <p class="text-sm sm:text-base text-slate-600 mt-1">Input manual untuk siswa yang Hadir, Terlambat, Izin, Sakit, atau Dispensasi</p>
             </div>
 
             <!-- Mode Switcher -->
@@ -43,6 +43,8 @@
             <div class="flex-1">
                 <h3 class="text-blue-900 font-semibold mb-1">Panduan Input Manual</h3>
                 <ul class="text-sm text-blue-800 space-y-1">
+                    <li>• <strong>Hadir</strong>: Siswa hadir tepat waktu (Nilai: 100%)</li>
+                    <li>• <strong>Terlambat</strong>: Siswa hadir terlambat (Nilai: 75%)</li>
                     <li>• <strong>Izin</strong>: Untuk urusan pribadi/keluarga (Nilai: 50%)</li>
                     <li>• <strong>Sakit</strong>: Siswa tidak hadir karena sakit (Nilai: 50%)</li>
                     <li>• <strong>Dispensasi</strong>: Izin resmi sekolah untuk lomba, tugas, dll (Nilai: 75%)</li>
@@ -279,8 +281,10 @@
                     <label class="block text-sm font-medium text-slate-700 mb-2">
                         Status Absensi <span class="text-red-500">*</span>
                     </label>
-                    <select wire:model="selectedStatus"
+                    <select wire:model.live="selectedStatus"
                             class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="hadir">Hadir (100%)</option>
+                        <option value="terlambat">Terlambat (75%)</option>
                         <option value="izin">Izin (50%)</option>
                         <option value="sakit">Sakit (50%)</option>
                         <option value="dispensasi">Dispensasi (75%)</option>
@@ -290,7 +294,44 @@
                     @enderror
                 </div>
 
-                <!-- Reason Textarea -->
+                <!-- Time Inputs (only shown for Hadir/Terlambat) -->
+                @if(in_array($selectedStatus, ['hadir', 'terlambat']))
+                <div class="md:col-span-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Check-in Time -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">
+                                Waktu Check-In <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time"
+                                   wire:model="checkInTime"
+                                   class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                            @error('checkInTime')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Check-out Time -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">
+                                Waktu Check-Out <span class="text-slate-400">(Opsional)</span>
+                            </label>
+                            <input type="time"
+                                   wire:model="checkOutTime"
+                                   class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                            @error('checkOutTime')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">
+                        💡 Sistem akan otomatis menghitung keterlambatan berdasarkan waktu check-in
+                    </p>
+                </div>
+                @endif
+
+                <!-- Reason Textarea (only shown for Izin/Sakit/Dispensasi) -->
+                @if(!in_array($selectedStatus, ['hadir', 'terlambat']))
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-2">
                         Alasan/Keterangan <span class="text-red-500">*</span>
@@ -304,6 +345,7 @@
                     @enderror
                     <p class="mt-1 text-xs text-slate-500">Contoh: Sakit demam, ada keperluan keluarga, mengikuti lomba robotik, dll.</p>
                 </div>
+                @endif
             </div>
 
             <!-- Action Buttons -->

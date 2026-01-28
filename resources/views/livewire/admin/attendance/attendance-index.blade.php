@@ -145,6 +145,208 @@
         </div>
     @endif
 
+    <!-- Unified Export Rekap Card -->
+    <div class="mb-6 bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Export Rekap Absensi</h3>
+                    <p class="text-sm text-slate-600">Pilih periode dan kelas, lalu gunakan tombol Export di kanan atas</p>
+                </div>
+            </div>
+
+            <!-- Mode Toggle -->
+            <div class="inline-flex items-center bg-slate-100 rounded-xl p-1">
+                <button wire:click="$set('exportMode', 'monthly')"
+                        class="px-4 py-2 text-sm font-semibold rounded-lg transition-all {{ $exportMode === 'monthly' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                    Bulanan
+                </button>
+                <button wire:click="$set('exportMode', 'semester')"
+                        class="px-4 py-2 text-sm font-semibold rounded-lg transition-all {{ $exportMode === 'semester' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                    Semester
+                </button>
+                <button wire:click="$set('exportMode', 'custom')"
+                        class="px-4 py-2 text-sm font-semibold rounded-lg transition-all {{ $exportMode === 'custom' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                    Kustom
+                </button>
+            </div>
+        </div>
+
+        @if (session()->has('error'))
+            <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-600 rounded-lg">
+                <p class="text-sm font-medium text-red-900">{{ session('error') }}</p>
+            </div>
+        @endif
+
+        <!-- Export Form -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Pilih Kelas (Always shown first) -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <span class="flex items-center gap-1">
+                        Pilih Kelas
+                        <span class="text-red-500">*</span>
+                    </span>
+                </label>
+                <select wire:model.live="exportClassFilter"
+                        class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    <option value="">-- Pilih Kelas --</option>
+                    @foreach($departments as $dept)
+                        <optgroup label="{{ $dept->code }} - {{ $dept->name }}">
+                            @php
+                                $deptClasses = $allClasses->where('department_id', $dept->id);
+                            @endphp
+                            @forelse($deptClasses as $class)
+                                <option value="{{ $class->id }}">{{ $class->name }}</option>
+                            @empty
+                                <option disabled>Tidak ada kelas</option>
+                            @endforelse
+                        </optgroup>
+                    @endforeach
+                </select>
+            </div>
+
+            @if($exportMode === 'monthly')
+                <!-- Bulan -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Bulan</label>
+                    <select wire:model="exportMonth"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                </div>
+
+                <!-- Tahun -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Tahun</label>
+                    <select wire:model="exportYear"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        @for($year = date('Y'); $year >= 2020; $year--)
+                            <option value="{{ $year }}">{{ $year }}</option>
+                        @endfor
+                    </select>
+                </div>
+            @elseif($exportMode === 'semester')
+                <!-- Semester -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        <span class="flex items-center gap-1">
+                            Semester
+                            <span class="text-red-500">*</span>
+                        </span>
+                    </label>
+                    <select wire:model="exportSemester"
+                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all">
+                        <option value="">-- Pilih Semester --</option>
+                        @foreach($semesters as $sem)
+                            <option value="{{ $sem->id }}">
+                                {{ $sem->name }} ({{ $sem->academic_year }})
+                                @if($sem->is_active) ★ @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @else
+                <!-- Custom Date Range -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        <span class="flex items-center gap-1">
+                            Tanggal Mulai
+                            <span class="text-red-500">*</span>
+                        </span>
+                    </label>
+                    <input type="date" wire:model="exportStartDate"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        <span class="flex items-center gap-1">
+                            Tanggal Akhir
+                            <span class="text-red-500">*</span>
+                        </span>
+                    </label>
+                    <input type="date" wire:model="exportEndDate"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all">
+                </div>
+            @endif
+        </div>
+
+        <!-- Info Box -->
+        <div class="mt-4 p-4 {{ $exportMode === 'monthly' ? 'bg-blue-50 border-blue-200' : ($exportMode === 'semester' ? 'bg-purple-50 border-purple-200' : 'bg-amber-50 border-amber-200') }} border rounded-xl">
+            <div class="flex items-start gap-2">
+                <svg class="w-5 h-5 {{ $exportMode === 'monthly' ? 'text-blue-600' : ($exportMode === 'semester' ? 'text-purple-600' : 'text-amber-600') }} flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <div class="flex-1">
+                    @if($exportMode === 'monthly')
+                        <p class="text-sm text-blue-900 font-semibold mb-1">
+                            Cara Export Rekap Bulanan:
+                        </p>
+                        <ol class="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                            <li>Pilih kelas yang ingin di-export</li>
+                            <li>Pilih bulan dan tahun</li>
+                            <li>Klik tombol <strong>Export Excel</strong> atau <strong>Export PDF</strong> di kanan atas halaman</li>
+                            <li>Rekap akan menghitung hari efektif dengan mengecualikan hari libur</li>
+                        </ol>
+                    @elseif($exportMode === 'semester')
+                        <p class="text-sm text-purple-900 font-semibold mb-1">
+                            Cara Export Rekap Semester:
+                        </p>
+                        <ol class="text-xs text-purple-800 space-y-1 list-decimal list-inside">
+                            <li>Pilih kelas yang ingin di-export</li>
+                            <li>Pilih semester</li>
+                            <li>Klik tombol <strong>Export Excel</strong> atau <strong>Export PDF</strong> di kanan atas halaman</li>
+                            <li>Rekap menghitung hari efektif sekolah (exclude Sabtu, Minggu, dan hari libur)</li>
+                            <li>Persentase kehadiran = (Total Hadir / Hari Efektif) × 100%</li>
+                        </ol>
+                    @else
+                        <p class="text-sm text-amber-900 font-semibold mb-1">
+                            Cara Export Rekap Periode Kustom:
+                        </p>
+                        <ol class="text-xs text-amber-800 space-y-1 list-decimal list-inside">
+                            <li>Pilih kelas yang ingin di-export</li>
+                            <li>Pilih tanggal mulai dan tanggal akhir (maksimal 1 tahun)</li>
+                            <li>Klik tombol <strong>Export Excel</strong> atau <strong>Export PDF</strong> di kanan atas halaman</li>
+                            <li>Rekap menghitung hari efektif dalam periode (exclude Sabtu, Minggu, dan hari libur)</li>
+                            <li>Persentase kehadiran = (Total Hadir / Hari Efektif) × 100%</li>
+                        </ol>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Info -->
+        @if($exportClassFilter)
+            <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm font-medium text-green-900">
+                        Siap export! Klik tombol <strong>Export Excel</strong> atau <strong>Export PDF</strong> di kanan atas halaman.
+                    </p>
+                </div>
+            </div>
+        @endif
+    </div>
+
     <!-- RFID Reader Card -->
     <div class="mb-6 bg-gradient-to-r from-blue-600 to-blue-700 border border-blue-700 rounded-xl shadow-lg p-4 sm:p-6 text-white">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -476,96 +678,6 @@
             </div>
         </div>
 
-        <!-- Divider -->
-        <div class="border-t border-slate-200 my-6"></div>
-
-        <!-- Export Section with Highlight -->
-        <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-300 rounded-xl p-5">
-            <div class="flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <h4 class="text-sm font-bold text-blue-900 uppercase tracking-wider">📊 Export Rekap Bulanan</h4>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <!-- Month Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Bulan</label>
-                    <select wire:model="exportMonth"
-                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white">
-                        <option value="01">Januari</option>
-                        <option value="02">Februari</option>
-                        <option value="03">Maret</option>
-                        <option value="04">April</option>
-                        <option value="05">Mei</option>
-                        <option value="06">Juni</option>
-                        <option value="07">Juli</option>
-                        <option value="08">Agustus</option>
-                        <option value="09">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                </div>
-
-                <!-- Year Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Tahun</label>
-                    <select wire:model="exportYear"
-                            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white">
-                        @for($year = date('Y'); $year >= 2020; $year--)
-                            <option value="{{ $year }}">{{ $year }}</option>
-                        @endfor
-                    </select>
-                </div>
-
-                <!-- Info Kelas -->
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Kelas untuk Export</label>
-                    <div class="w-full px-4 py-2.5 border rounded-xl {{ $classFilter ? 'border-green-300 bg-green-50' : 'border-slate-200 bg-slate-50' }} flex items-center">
-                        @if($classFilter)
-                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="text-sm font-medium text-green-700">
-                                @foreach($classes as $class)
-                                    @if($class->id == $classFilter)
-                                        {{ $class->name }}
-                                    @endif
-                                @endforeach
-                            </span>
-                        @else
-                            <svg class="w-5 h-5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                            </svg>
-                            <span class="text-sm text-slate-500">Pilih kelas di atas</span>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Export Buttons -->
-                <div class="md:col-span-2 flex gap-2 items-end">
-                    <button wire:click="exportMonthlyExcel"
-                            @if(!$classFilter) disabled @endif
-                            class="flex-1 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-sm font-medium text-sm {{ $classFilter ? 'bg-green-600 hover:bg-green-700 text-white hover:shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <span wire:loading.remove wire:target="exportMonthlyExcel">Excel</span>
-                        <span wire:loading wire:target="exportMonthlyExcel">...</span>
-                    </button>
-                    <button wire:click="exportMonthlyPdf"
-                            @if(!$classFilter) disabled @endif
-                            class="flex-1 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-sm font-medium text-sm {{ $classFilter ? 'bg-red-600 hover:bg-red-700 text-white hover:shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <span wire:loading.remove wire:target="exportMonthlyPdf">PDF</span>
-                        <span wire:loading wire:target="exportMonthlyPdf">...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Attendance Table -->
@@ -583,6 +695,7 @@
                         <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Metode</th>
                         <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">%</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-100">
@@ -630,10 +743,32 @@
                                     {{ $attendance->percentage }}%
                                 </span>
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <!-- Edit Button -->
+                                    <button wire:click="openEditModal({{ $attendance->id }})"
+                                            class="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        Edit
+                                    </button>
+
+                                    <!-- Delete Button -->
+                                    <button wire:click="deleteAttendance({{ $attendance->id }})"
+                                            wire:confirm="Yakin ingin menghapus data absensi ini? Tindakan ini tidak dapat dibatalkan."
+                                            class="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        Hapus
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-12 text-center text-slate-500">
+                            <td colspan="10" class="px-6 py-12 text-center text-slate-500">
                                 <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
@@ -652,6 +787,173 @@
             </div>
         @endif
     </div>
+
+    <!-- Edit Modal -->
+    @if($showEditModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" wire:click="closeEditModal"></div>
+
+            <!-- Modal panel -->
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900">Edit Data Absensi</h3>
+                            <p class="text-sm text-slate-600 mt-1">Ubah waktu dan status kehadiran siswa</p>
+                        </div>
+                        <button wire:click="closeEditModal" class="text-slate-400 hover:text-slate-600 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="p-6 space-y-5">
+                        <!-- Student Info (Read-only) -->
+                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <h4 class="text-sm font-semibold text-slate-700 mb-3">Informasi Siswa</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">Nama</label>
+                                    <p class="text-sm font-semibold text-slate-900">{{ $editStudentName }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">NIS</label>
+                                    <p class="text-sm font-mono font-semibold text-slate-900">{{ $editStudentNis }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">Kelas</label>
+                                    <p class="text-sm font-semibold text-slate-900">{{ $editStudentClass }}</p>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Tanggal</label>
+                                <p class="text-sm font-semibold text-slate-900">{{ $editDate }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Editable Fields -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Check-in Time -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Waktu Check-In *
+                                    <span class="text-xs font-normal text-slate-500">(HH:MM)</span>
+                                </label>
+                                <input type="time" wire:model="editCheckInTime"
+                                       class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all @error('editCheckInTime') border-red-500 @enderror">
+                                @error('editCheckInTime')
+                                    <span class="text-red-600 text-xs mt-1 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {{ $message }}
+                                    </span>
+                                @enderror
+                            </div>
+
+                            <!-- Check-out Time -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Waktu Check-Out
+                                    <span class="text-xs font-normal text-slate-500">(Opsional)</span>
+                                </label>
+                                <input type="time" wire:model="editCheckOutTime"
+                                       class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all @error('editCheckOutTime') border-red-500 @enderror">
+                                @error('editCheckOutTime')
+                                    <span class="text-red-600 text-xs mt-1 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {{ $message }}
+                                    </span>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Status Kehadiran *</label>
+                            <select wire:model="editStatus"
+                                    class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all @error('editStatus') border-red-500 @enderror">
+                                <option value="">Pilih Status</option>
+                                <option value="hadir">Hadir</option>
+                                <option value="terlambat">Terlambat</option>
+                                <option value="izin">Izin</option>
+                                <option value="sakit">Sakit</option>
+                                <option value="dispensasi">Dispensasi</option>
+                                <option value="alpha">Alpha</option>
+                                <option value="bolos">Bolos</option>
+                                <option value="pulang_cepat">Pulang Cepat</option>
+                                <option value="lupa_check_out">Lupa Check Out</option>
+                            </select>
+                            @error('editStatus')
+                                <span class="text-red-600 text-xs mt-1 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {{ $message }}
+                                </span>
+                            @enderror
+                        </div>
+
+                        <!-- Notes -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Catatan Admin
+                                <span class="text-xs font-normal text-slate-500">(Opsional)</span>
+                            </label>
+                            <textarea wire:model="editNotes" rows="3"
+                                      class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all @error('editNotes') border-red-500 @enderror"
+                                      placeholder="Tambahkan catatan alasan perubahan..."></textarea>
+                            @error('editNotes')
+                                <span class="text-red-600 text-xs mt-1">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            <div class="text-xs text-blue-800">
+                                <p class="font-semibold mb-1">Informasi Penting:</p>
+                                <ul class="list-disc list-inside space-y-1 text-blue-700">
+                                    <li>Perubahan data akan otomatis menghitung ulang keterlambatan dan persentase</li>
+                                    <li>Semua perubahan akan tercatat dalam log audit dengan nama admin yang mengubah</li>
+                                    <li>Status Izin/Sakit/Alpha tidak memerlukan waktu check-in/out</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
+                        <button wire:click="closeEditModal"
+                                class="px-6 py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all">
+                            Batal
+                        </button>
+                        <button wire:click="updateAttendance"
+                                wire:loading.attr="disabled"
+                                class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                            <svg wire:loading.remove wire:target="updateAttendance" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <svg wire:loading wire:target="updateAttendance" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="updateAttendance">Simpan Perubahan</span>
+                            <span wire:loading wire:target="updateAttendance">Menyimpan...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 @push('scripts')

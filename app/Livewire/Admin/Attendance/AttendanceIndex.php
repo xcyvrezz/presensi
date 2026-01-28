@@ -13,6 +13,7 @@ use Livewire\Attributes\Title;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 
 #[Layout('layouts.admin')]
 #[Title('Data Absensi')]
@@ -28,9 +29,14 @@ class AttendanceIndex extends Component
     public $statusFilter = '';
     public $methodFilter = '';
 
-    // Monthly export filters
+    // Export filters (separate from table filters)
+    public $exportMode = 'monthly'; // monthly, semester, or custom
+    public $exportClassFilter = '';
     public $exportMonth;
     public $exportYear;
+    public $exportSemester;
+    public $exportStartDate;
+    public $exportEndDate;
 
     // Statistics
     public $totalPresent = 0;
@@ -52,6 +58,20 @@ class AttendanceIndex extends Component
     // Today's Event
     public $todayEvent = null;
 
+    // Edit Modal State
+    public $showEditModal = false;
+    public $editingAttendanceId;
+
+    // Form Fields
+    public $editDate;
+    public $editStudentName;
+    public $editStudentNis;
+    public $editStudentClass;
+    public $editCheckInTime;
+    public $editCheckOutTime;
+    public $editStatus;
+    public $editNotes;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'dateFrom' => ['except' => ''],
@@ -60,6 +80,25 @@ class AttendanceIndex extends Component
         'classFilter' => ['except' => ''],
         'statusFilter' => ['except' => ''],
         'methodFilter' => ['except' => ''],
+    ];
+
+    protected function rules()
+    {
+        return [
+            'editCheckInTime' => 'required|date_format:H:i',
+            'editCheckOutTime' => 'nullable|date_format:H:i|after:editCheckInTime',
+            'editStatus' => 'required|in:hadir,terlambat,izin,sakit,dispensasi,alpha,bolos,pulang_cepat,lupa_check_out',
+            'editNotes' => 'nullable|string|max:500',
+        ];
+    }
+
+    protected $messages = [
+        'editCheckInTime.required' => 'Waktu check-in harus diisi',
+        'editCheckInTime.date_format' => 'Format waktu tidak valid (HH:MM)',
+        'editCheckOutTime.date_format' => 'Format waktu tidak valid (HH:MM)',
+        'editCheckOutTime.after' => 'Check-out harus setelah check-in',
+        'editStatus.required' => 'Status kehadiran harus dipilih',
+        'editStatus.in' => 'Status tidak valid',
     ];
 
     public function mount()
@@ -71,6 +110,14 @@ class AttendanceIndex extends Component
         // Set default month and year for export
         $this->exportMonth = Carbon::now()->format('m');
         $this->exportYear = Carbon::now()->format('Y');
+
+        // Set default semester (active semester)
+        $activeSemester = \App\Models\Semester::active()->first();
+        $this->exportSemester = $activeSemester ? $activeSemester->id : null;
+
+        // Set default dates for custom export (current month)
+        $this->exportStartDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $this->exportEndDate = Carbon::now()->endOfMonth()->format('Y-m-d');
 
         $this->calculateStatistics();
 
@@ -192,6 +239,18 @@ class AttendanceIndex extends Component
 
     public function exportExcel()
     {
+        // If export class filter is set, export by mode (monthly/semester/custom)
+        if ($this->exportClassFilter) {
+            if ($this->exportMode === 'semester') {
+                return $this->exportSemesterExcel();
+            } elseif ($this->exportMode === 'custom') {
+                return $this->exportCustomExcel();
+            } else {
+                return $this->exportMonthlyExcel();
+            }
+        }
+
+        // Otherwise, export current filtered view
         $fileName = 'Absensi_' . ($this->dateFrom ?? 'All') . '_to_' . ($this->dateTo ?? 'All') . '_' . now()->format('YmdHis') . '.xlsx';
 
         return Excel::download(
@@ -210,6 +269,18 @@ class AttendanceIndex extends Component
 
     public function exportPdf()
     {
+        // If export class filter is set, export by mode (monthly/semester/custom)
+        if ($this->exportClassFilter) {
+            if ($this->exportMode === 'semester') {
+                return $this->exportSemesterPdf();
+            } elseif ($this->exportMode === 'custom') {
+                return $this->exportCustomPdf();
+            } else {
+                return $this->exportMonthlyPdf();
+            }
+        }
+
+        // Otherwise, export current filtered view
         $query = Attendance::query()
             ->with(['student.class.department', 'location']);
 
@@ -382,12 +453,12 @@ class AttendanceIndex extends Component
     public function exportMonthlyExcel()
     {
         // Validate that class is selected
-        if (empty($this->classFilter)) {
+        if (empty($this->exportClassFilter)) {
             session()->flash('error', 'Silakan pilih kelas terlebih dahulu untuk export absensi bulanan.');
             return;
         }
 
-        $class = Classes::find($this->classFilter);
+        $class = Classes::find($this->exportClassFilter);
         if (!$class) {
             session()->flash('error', 'Kelas tidak ditemukan.');
             return;
@@ -401,7 +472,7 @@ class AttendanceIndex extends Component
 
         return Excel::download(
             new \App\Exports\MonthlyAttendanceExport(
-                $this->classFilter,
+                $this->exportClassFilter,
                 $this->exportMonth,
                 $this->exportYear
             ),
@@ -412,19 +483,32 @@ class AttendanceIndex extends Component
     public function exportMonthlyPdf()
     {
         // Validate that class is selected
-        if (empty($this->classFilter)) {
+        if (empty($this->exportClassFilter)) {
             session()->flash('error', 'Silakan pilih kelas terlebih dahulu untuk export absensi bulanan.');
             return;
         }
 
-        $class = Classes::with('department')->find($this->classFilter);
+        $class = Classes::with('department')->find($this->exportClassFilter);
         if (!$class) {
             session()->flash('error', 'Kelas tidak ditemukan.');
             return;
         }
 
+        // Calculate date range for the month
+        $startDate = Carbon::createFromDate($this->exportYear, $this->exportMonth, 1)->startOfMonth();
+        $endDate = Carbon::createFromDate($this->exportYear, $this->exportMonth, 1)->endOfMonth();
+
+        // Get holiday dates in this month
+        $holidayDates = \App\Models\AcademicCalendar::getHolidayDates(
+            $startDate->format('Y-m-d'),
+            $endDate->format('Y-m-d')
+        );
+
+        // Calculate effective school days
+        $effectiveSchoolDays = $this->calculateEffectiveSchoolDays($startDate->format('Y-m-d'), $endDate->format('Y-m-d'), $holidayDates);
+
         // Get all students in this class
-        $students = \App\Models\Student::where('class_id', $this->classFilter)
+        $students = \App\Models\Student::where('class_id', $this->exportClassFilter)
             ->active()
             ->orderBy('full_name')
             ->get();
@@ -437,14 +521,29 @@ class AttendanceIndex extends Component
                 ->whereMonth('date', $this->exportMonth)
                 ->get();
 
+            $hadirCount = $attendances->where('status', 'hadir')->count();
+            $terlambatCount = $attendances->where('status', 'terlambat')->count();
+            $dispensasiCount = $attendances->where('status', 'dispensasi')->count();
+
+            // Total kehadiran (hadir + terlambat + dispensasi)
+            $totalKehadiran = $hadirCount + $terlambatCount + $dispensasiCount;
+
+            // Percentage calculation
+            $percentage = $effectiveSchoolDays > 0
+                ? round(($totalKehadiran / $effectiveSchoolDays) * 100, 2)
+                : 0;
+
             $attendanceData[] = [
                 'student' => $student,
-                'hadir' => $attendances->where('status', 'hadir')->count(),
-                'terlambat' => $attendances->where('status', 'terlambat')->count(),
+                'hadir' => $hadirCount,
+                'terlambat' => $terlambatCount,
                 'izin' => $attendances->where('status', 'izin')->count(),
                 'sakit' => $attendances->where('status', 'sakit')->count(),
+                'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
+                'total_kehadiran' => $totalKehadiran,
+                'percentage' => $percentage,
             ];
         }
 
@@ -457,6 +556,7 @@ class AttendanceIndex extends Component
             'class' => $class,
             'month' => $monthName,
             'year' => $this->exportYear,
+            'effectiveSchoolDays' => $effectiveSchoolDays,
         ])->setPaper('a4', 'landscape');
 
         $fileName = 'Rekap_Absensi_' . str_replace(' ', '_', $class->name) . '_' . $monthName . '_' . $this->exportYear . '.pdf';
@@ -464,6 +564,555 @@ class AttendanceIndex extends Component
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
         }, $fileName);
+    }
+
+    public function exportSemesterExcel()
+    {
+        // Validate that class is selected
+        if (empty($this->exportClassFilter)) {
+            session()->flash('error', 'Silakan pilih kelas terlebih dahulu untuk export absensi semester.');
+            return;
+        }
+
+        // Validate that semester is selected
+        if (empty($this->exportSemester)) {
+            session()->flash('error', 'Silakan pilih semester terlebih dahulu.');
+            return;
+        }
+
+        $class = Classes::find($this->exportClassFilter);
+        if (!$class) {
+            session()->flash('error', 'Kelas tidak ditemukan.');
+            return;
+        }
+
+        $semester = \App\Models\Semester::find($this->exportSemester);
+        if (!$semester) {
+            session()->flash('error', 'Semester tidak ditemukan.');
+            return;
+        }
+
+        // Sanitize filename by replacing invalid characters
+        $className = preg_replace('/[\/\\\\\s]+/', '_', $class->name);
+        $semesterName = preg_replace('/[\/\\\\\s]+/', '_', $semester->name);
+        $fileName = 'Rekap_Absensi_Semester_' . $className . '_' . $semesterName . '.xlsx';
+
+        return Excel::download(
+            new \App\Exports\SemesterAttendanceExport(
+                $this->exportClassFilter,
+                $this->exportSemester
+            ),
+            $fileName
+        );
+    }
+
+    public function exportSemesterPdf()
+    {
+        // Validate that class is selected
+        if (empty($this->exportClassFilter)) {
+            session()->flash('error', 'Silakan pilih kelas terlebih dahulu untuk export absensi semester.');
+            return;
+        }
+
+        // Validate that semester is selected
+        if (empty($this->exportSemester)) {
+            session()->flash('error', 'Silakan pilih semester terlebih dahulu.');
+            return;
+        }
+
+        $class = Classes::with('department')->find($this->exportClassFilter);
+        if (!$class) {
+            session()->flash('error', 'Kelas tidak ditemukan.');
+            return;
+        }
+
+        $semester = \App\Models\Semester::find($this->exportSemester);
+        if (!$semester) {
+            session()->flash('error', 'Semester tidak ditemukan.');
+            return;
+        }
+
+        // Get all students in this class
+        $students = \App\Models\Student::where('class_id', $this->exportClassFilter)
+            ->active()
+            ->orderBy('full_name')
+            ->get();
+
+        // Get holiday dates in this semester
+        $holidayDates = \App\Models\AcademicCalendar::getHolidayDates(
+            $semester->start_date,
+            $semester->end_date
+        );
+
+        // Calculate effective school days
+        $effectiveSchoolDays = $this->calculateEffectiveSchoolDays($semester->start_date, $semester->end_date, $holidayDates);
+
+        // Calculate attendance summary for each student
+        $attendanceData = [];
+        foreach ($students as $student) {
+            $attendances = Attendance::where('student_id', $student->id)
+                ->where('semester_id', $this->exportSemester)
+                ->whereBetween('date', [$semester->start_date, $semester->end_date])
+                ->get();
+
+            $hadirCount = $attendances->where('status', 'hadir')->count();
+            $terlambatCount = $attendances->where('status', 'terlambat')->count();
+            $dispensasiCount = $attendances->where('status', 'dispensasi')->count();
+            $totalKehadiran = $hadirCount + $terlambatCount + $dispensasiCount;
+            $percentage = $effectiveSchoolDays > 0
+                ? round(($totalKehadiran / $effectiveSchoolDays) * 100, 2)
+                : 0;
+
+            $attendanceData[] = [
+                'student' => $student,
+                'hadir' => $hadirCount,
+                'terlambat' => $terlambatCount,
+                'izin' => $attendances->where('status', 'izin')->count(),
+                'sakit' => $attendances->where('status', 'sakit')->count(),
+                'dispensasi' => $dispensasiCount,
+                'bolos' => $attendances->where('status', 'bolos')->count(),
+                'alpha' => $attendances->where('status', 'alpha')->count(),
+                'total_kehadiran' => $totalKehadiran,
+                'percentage' => $percentage,
+            ];
+        }
+
+        $pdf = Pdf::loadView('exports.semester-attendance-pdf', [
+            'attendanceData' => $attendanceData,
+            'class' => $class,
+            'semester' => $semester,
+            'effectiveSchoolDays' => $effectiveSchoolDays,
+        ])->setPaper('a4', 'landscape');
+
+        // Sanitize filename by replacing invalid characters
+        $className = preg_replace('/[\/\\\\\s]+/', '_', $class->name);
+        $semesterName = preg_replace('/[\/\\\\\s]+/', '_', $semester->name);
+        $fileName = 'Rekap_Absensi_Semester_' . $className . '_' . $semesterName . '.pdf';
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $fileName);
+    }
+
+    public function exportCustomExcel()
+    {
+        // Validate that class is selected
+        if (empty($this->exportClassFilter)) {
+            session()->flash('error', 'Silakan pilih kelas terlebih dahulu untuk export absensi periode kustom.');
+            return;
+        }
+
+        // Validate that dates are selected
+        if (empty($this->exportStartDate) || empty($this->exportEndDate)) {
+            session()->flash('error', 'Silakan pilih tanggal mulai dan tanggal akhir untuk export absensi periode kustom.');
+            return;
+        }
+
+        $class = Classes::find($this->exportClassFilter);
+        if (!$class) {
+            session()->flash('error', 'Kelas tidak ditemukan.');
+            return;
+        }
+
+        // Validate date range
+        $startDate = Carbon::parse($this->exportStartDate);
+        $endDate = Carbon::parse($this->exportEndDate);
+
+        if ($endDate->lt($startDate)) {
+            session()->flash('error', 'Tanggal akhir harus sama atau setelah tanggal mulai.');
+            return;
+        }
+
+        // Check maximum date range (365 days)
+        $daysDifference = $startDate->diffInDays($endDate);
+        if ($daysDifference > 365) {
+            session()->flash('error', 'Rentang tanggal maksimal adalah 1 tahun (365 hari). Rentang Anda: ' . $daysDifference . ' hari.');
+            return;
+        }
+
+        // Sanitize filename
+        $className = preg_replace('/[\/\\\\\s]+/', '_', $class->name);
+        $startDateStr = $startDate->format('Ymd');
+        $endDateStr = $endDate->format('Ymd');
+        $fileName = 'Rekap_Absensi_Custom_' . $className . '_' . $startDateStr . '_to_' . $endDateStr . '.xlsx';
+
+        return Excel::download(
+            new \App\Exports\CustomDateRangeAttendanceExport(
+                $this->exportClassFilter,
+                $this->exportStartDate,
+                $this->exportEndDate
+            ),
+            $fileName
+        );
+    }
+
+    public function exportCustomPdf()
+    {
+        // Validate that class is selected
+        if (empty($this->exportClassFilter)) {
+            session()->flash('error', 'Silakan pilih kelas terlebih dahulu untuk export absensi periode kustom.');
+            return;
+        }
+
+        // Validate that dates are selected
+        if (empty($this->exportStartDate) || empty($this->exportEndDate)) {
+            session()->flash('error', 'Silakan pilih tanggal mulai dan tanggal akhir untuk export absensi periode kustom.');
+            return;
+        }
+
+        $class = Classes::with('department')->find($this->exportClassFilter);
+        if (!$class) {
+            session()->flash('error', 'Kelas tidak ditemukan.');
+            return;
+        }
+
+        // Validate date range
+        $startDate = Carbon::parse($this->exportStartDate);
+        $endDate = Carbon::parse($this->exportEndDate);
+
+        if ($endDate->lt($startDate)) {
+            session()->flash('error', 'Tanggal akhir harus sama atau setelah tanggal mulai.');
+            return;
+        }
+
+        // Check maximum date range (365 days)
+        $daysDifference = $startDate->diffInDays($endDate);
+        if ($daysDifference > 365) {
+            session()->flash('error', 'Rentang tanggal maksimal adalah 1 tahun (365 hari). Rentang Anda: ' . $daysDifference . ' hari.');
+            return;
+        }
+
+        // Get holiday dates in this date range
+        $holidayDates = AcademicCalendar::getHolidayDates(
+            $startDate->format('Y-m-d'),
+            $endDate->format('Y-m-d')
+        );
+
+        // Calculate effective school days
+        $effectiveSchoolDays = $this->calculateEffectiveSchoolDays(
+            $startDate->format('Y-m-d'),
+            $endDate->format('Y-m-d'),
+            $holidayDates
+        );
+
+        // Get all students in this class
+        $students = \App\Models\Student::where('class_id', $this->exportClassFilter)
+            ->active()
+            ->orderBy('full_name')
+            ->get();
+
+        // Calculate attendance data for each student
+        $attendanceData = [];
+        foreach ($students as $student) {
+            $attendances = Attendance::where('student_id', $student->id)
+                ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->get();
+
+            $hadirCount = $attendances->where('status', 'hadir')->count();
+            $terlambatCount = $attendances->where('status', 'terlambat')->count();
+            $dispensasiCount = $attendances->where('status', 'dispensasi')->count();
+
+            // Total kehadiran (hadir + terlambat + dispensasi)
+            $totalKehadiran = $hadirCount + $terlambatCount + $dispensasiCount;
+
+            // Percentage calculation
+            $percentage = $effectiveSchoolDays > 0
+                ? round(($totalKehadiran / $effectiveSchoolDays) * 100, 2)
+                : 0;
+
+            $attendanceData[] = [
+                'student' => $student,
+                'hadir' => $hadirCount,
+                'terlambat' => $terlambatCount,
+                'izin' => $attendances->where('status', 'izin')->count(),
+                'sakit' => $attendances->where('status', 'sakit')->count(),
+                'dispensasi' => $dispensasiCount,
+                'bolos' => $attendances->where('status', 'bolos')->count(),
+                'alpha' => $attendances->where('status', 'alpha')->count(),
+                'total_kehadiran' => $totalKehadiran,
+                'percentage' => $percentage,
+            ];
+        }
+
+        $pdf = Pdf::loadView('exports.custom-attendance-pdf', [
+            'attendanceData' => $attendanceData,
+            'class' => $class,
+            'startDate' => $startDate->locale('id')->translatedFormat('d F Y'),
+            'endDate' => $endDate->locale('id')->translatedFormat('d F Y'),
+            'effectiveSchoolDays' => $effectiveSchoolDays,
+        ])->setPaper('a4', 'landscape');
+
+        // Sanitize filename
+        $className = preg_replace('/[\/\\\\\s]+/', '_', $class->name);
+        $startDateStr = $startDate->format('Ymd');
+        $endDateStr = $endDate->format('Ymd');
+        $fileName = 'Rekap_Absensi_Custom_' . $className . '_' . $startDateStr . '_to_' . $endDateStr . '.pdf';
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $fileName);
+    }
+
+    /**
+     * Calculate effective school days (exclude Saturday, Sunday, and holidays)
+     */
+    protected function calculateEffectiveSchoolDays($startDate, $endDate, $holidayDates): int
+    {
+        $current = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        $effectiveDays = 0;
+
+        while ($current->lte($end)) {
+            $dateString = $current->format('Y-m-d');
+
+            // Exclude Saturday (6) and Sunday (0)
+            $isWeekend = $current->dayOfWeek == 0 || $current->dayOfWeek == 6;
+
+            // Exclude holidays
+            $isHoliday = in_array($dateString, $holidayDates);
+
+            if (!$isWeekend && !$isHoliday) {
+                $effectiveDays++;
+            }
+
+            $current->addDay();
+        }
+
+        return $effectiveDays;
+    }
+
+    /**
+     * Calculate late minutes based on check-in time
+     */
+    protected function calculateLateMinutes(Carbon $checkInDateTime): int
+    {
+        try {
+            // Get late threshold from settings
+            $lateThreshold = \App\Models\AttendanceSetting::getValue('late_threshold', '07:15:00');
+
+            // Ensure string format
+            if ($lateThreshold instanceof Carbon) {
+                $lateThreshold = $lateThreshold->format('H:i:s');
+            }
+
+            // Parse threshold with same date as check-in
+            $thresholdString = $checkInDateTime->format('Y-m-d') . ' ' . $lateThreshold;
+            $threshold = Carbon::createFromFormat('Y-m-d H:i:s', $thresholdString);
+
+            // If check-in after threshold, calculate late minutes
+            if ($checkInDateTime->gt($threshold)) {
+                return $threshold->diffInMinutes($checkInDateTime);
+            }
+
+            return 0;
+        } catch (\Exception $e) {
+            \Log::error('Error calculating late minutes: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calculate early leave minutes based on check-out time
+     */
+    protected function calculateEarlyLeaveMinutes(Carbon $checkOutDateTime): int
+    {
+        try {
+            // Get normal check-out time from settings
+            $checkOutNormal = \App\Models\AttendanceSetting::getValue('check_out_normal', '15:30:00');
+
+            // Ensure string format
+            if ($checkOutNormal instanceof Carbon) {
+                $checkOutNormal = $checkOutNormal->format('H:i:s');
+            }
+
+            // Parse threshold with same date as check-out
+            $thresholdString = $checkOutDateTime->format('Y-m-d') . ' ' . $checkOutNormal;
+            $threshold = Carbon::createFromFormat('Y-m-d H:i:s', $thresholdString);
+
+            // If check-out before normal time, calculate early leave minutes
+            if ($checkOutDateTime->lt($threshold)) {
+                return $threshold->diffInMinutes($checkOutDateTime);
+            }
+
+            return 0;
+        } catch (\Exception $e) {
+            \Log::error('Error calculating early leave minutes: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    public function openEditModal($attendanceId)
+    {
+        try {
+            $attendance = Attendance::with(['student', 'class.department'])->findOrFail($attendanceId);
+
+            // Populate form
+            $this->editingAttendanceId = $attendance->id;
+            $this->editDate = $attendance->date->format('d/m/Y');
+            $this->editStudentName = $attendance->student->full_name;
+            $this->editStudentNis = $attendance->student->nis;
+            $this->editStudentClass = $attendance->class->name . ' - ' . $attendance->class->department->name;
+            $this->editCheckInTime = $attendance->check_in_time ? Carbon::parse($attendance->check_in_time)->format('H:i') : '';
+            $this->editCheckOutTime = $attendance->check_out_time ? Carbon::parse($attendance->check_out_time)->format('H:i') : '';
+            $this->editStatus = $attendance->status;
+            $this->editNotes = $attendance->notes;
+
+            $this->showEditModal = true;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Gagal membuka data: ' . $e->getMessage());
+        }
+    }
+
+    public function closeEditModal()
+    {
+        $this->showEditModal = false;
+        $this->reset([
+            'editingAttendanceId', 'editDate', 'editStudentName',
+            'editStudentNis', 'editStudentClass', 'editCheckInTime',
+            'editCheckOutTime', 'editStatus', 'editNotes'
+        ]);
+        $this->resetValidation();
+    }
+
+    public function updateAttendance()
+    {
+        $this->validate();
+
+        try {
+            DB::beginTransaction();
+
+            $attendance = Attendance::findOrFail($this->editingAttendanceId);
+
+            // Capture old values for audit
+            $oldValues = $attendance->only([
+                'check_in_time', 'check_out_time', 'status',
+                'late_minutes', 'early_leave_minutes', 'percentage', 'notes'
+            ]);
+
+            // Prepare new data
+            $statusesWithoutTimes = ['izin', 'sakit', 'alpha', 'bolos'];
+
+            if (in_array($this->editStatus, $statusesWithoutTimes)) {
+                // These statuses don't require times
+                $checkInTime = null;
+                $checkOutTime = null;
+                $lateMinutes = 0;
+                $earlyLeaveMinutes = 0;
+            } else {
+                // Format times to HH:MM:SS
+                $checkInTime = $this->editCheckInTime ? $this->editCheckInTime . ':00' : null;
+                $checkOutTime = $this->editCheckOutTime ? $this->editCheckOutTime . ':00' : null;
+
+                // Recalculate late/early minutes using local helper methods
+                $checkInDateTime = Carbon::parse($attendance->date->format('Y-m-d') . ' ' . $this->editCheckInTime);
+                $lateMinutes = $this->calculateLateMinutes($checkInDateTime);
+
+                if ($checkOutTime) {
+                    $checkOutDateTime = Carbon::parse($attendance->date->format('Y-m-d') . ' ' . $this->editCheckOutTime);
+                    $earlyLeaveMinutes = $this->calculateEarlyLeaveMinutes($checkOutDateTime);
+                } else {
+                    $earlyLeaveMinutes = 0;
+                }
+            }
+
+            // Calculate percentage
+            $percentageMap = [
+                'hadir' => 100, 'terlambat' => 75, 'izin' => 50,
+                'sakit' => 50, 'dispensasi' => 75, 'pulang_cepat' => 75,
+                'alpha' => 0, 'bolos' => 0, 'lupa_check_out' => 75,
+            ];
+            $percentage = $percentageMap[$this->editStatus] ?? 0;
+
+            // Update attendance
+            $attendance->update([
+                'check_in_time' => $checkInTime,
+                'check_out_time' => $checkOutTime,
+                'status' => $this->editStatus,
+                'late_minutes' => $lateMinutes,
+                'early_leave_minutes' => $earlyLeaveMinutes,
+                'percentage' => $percentage,
+                'notes' => $this->editNotes,
+            ]);
+
+            // Create audit log
+            \App\Models\AuditLog::create([
+                'user_id' => auth()->id(),
+                'user_type' => 'admin',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'auditable_type' => 'Attendance',
+                'auditable_id' => $attendance->id,
+                'event' => 'updated',
+                'old_values' => $oldValues,
+                'new_values' => $attendance->fresh()->only([
+                    'check_in_time', 'check_out_time', 'status',
+                    'late_minutes', 'early_leave_minutes', 'percentage', 'notes'
+                ]),
+                'url' => request()->fullUrl(),
+                'tags' => ['attendance_edit', 'admin_action'],
+                'notes' => 'Data absensi diubah oleh admin: ' . auth()->user()->name,
+            ]);
+
+            DB::commit();
+
+            session()->flash('success', 'Data absensi berhasil diperbarui');
+            $this->closeEditModal();
+            $this->calculateStatistics();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Gagal memperbarui data: ' . $e->getMessage());
+            \Log::error('Error updating attendance: ' . $e->getMessage());
+        }
+    }
+
+    public function deleteAttendance($attendanceId)
+    {
+        try {
+            DB::beginTransaction();
+
+            $attendance = Attendance::with('student')->findOrFail($attendanceId);
+
+            // Capture data for audit before deleting
+            $deletedData = [
+                'student_name' => $attendance->student->full_name,
+                'student_nis' => $attendance->student->nis,
+                'date' => $attendance->date->format('Y-m-d'),
+                'check_in_time' => $attendance->check_in_time,
+                'check_out_time' => $attendance->check_out_time,
+                'status' => $attendance->status,
+                'percentage' => $attendance->percentage,
+            ];
+
+            // Create audit log before deletion
+            \App\Models\AuditLog::create([
+                'user_id' => auth()->id(),
+                'user_type' => 'admin',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'auditable_type' => 'Attendance',
+                'auditable_id' => $attendance->id,
+                'event' => 'deleted',
+                'old_values' => $deletedData,
+                'new_values' => [],
+                'url' => request()->fullUrl(),
+                'tags' => ['attendance_delete', 'admin_action'],
+                'notes' => 'Data absensi dihapus oleh admin: ' . auth()->user()->name,
+            ]);
+
+            // Soft delete
+            $attendance->delete();
+
+            DB::commit();
+
+            session()->flash('success', 'Data absensi berhasil dihapus');
+            $this->calculateStatistics();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Gagal menghapus data: ' . $e->getMessage());
+            \Log::error('Error deleting attendance: ' . $e->getMessage());
+        }
     }
 
     public function render()
@@ -512,10 +1161,20 @@ class AttendanceIndex extends Component
                 ->get();
         }
 
+        // Get all classes for export dropdown (not filtered by department)
+        $allClasses = Classes::active()->orderBy('name')->get();
+
+        // Get all semesters for dropdown
+        $semesters = \App\Models\Semester::orderBy('academic_year', 'desc')
+            ->orderBy('semester', 'desc')
+            ->get();
+
         return view('livewire.admin.attendance.attendance-index', [
             'attendances' => $attendances,
             'departments' => $departments,
             'classes' => $classes,
+            'allClasses' => $allClasses,
+            'semesters' => $semesters,
         ]);
     }
 }
