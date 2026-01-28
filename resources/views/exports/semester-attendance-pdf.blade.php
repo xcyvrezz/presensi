@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Rekap Absensi Bulanan</title>
+    <title>Rekap Absensi Semester</title>
     <style>
         @page {
             size: A4 landscape;
@@ -23,12 +23,12 @@
         }
 
         .header {
-            background-color: #1e3a8a;
+            background-color: #4338ca;
             padding: 25px 20px;
             border-radius: 0;
             margin-bottom: 25px;
             color: white;
-            border: 3px solid #1e40af;
+            border: 3px solid #4f46e5;
         }
 
         .header h2 {
@@ -47,11 +47,11 @@
         }
 
         .info-box {
-            background: #f1f5f9;
+            background: #eef2ff;
             padding: 15px;
             border-radius: 0;
             margin-bottom: 20px;
-            border: 2px solid #3b82f6;
+            border: 2px solid #6366f1;
         }
 
         .info-box table {
@@ -67,7 +67,7 @@
         .info-box td:first-child {
             font-weight: bold;
             width: 140px;
-            color: #1e3a8a;
+            color: #3730a3;
         }
 
         .highlight-box {
@@ -96,13 +96,13 @@
         }
 
         table.data-table th {
-            background-color: #1e3a8a;
+            background-color: #4338ca;
             color: white;
             font-weight: bold;
             font-size: 9pt;
             padding: 12px 5px;
             text-align: center;
-            border: 2px solid #1e40af;
+            border: 2px solid #4f46e5;
         }
 
         table.data-table td {
@@ -112,11 +112,11 @@
         }
 
         table.data-table tbody tr:nth-child(even) {
-            background-color: #f8fafc;
+            background-color: #faf5ff;
         }
 
         table.data-table tbody tr:hover {
-            background-color: #e0e7ff;
+            background-color: #f3e8ff;
         }
 
         .text-center {
@@ -127,6 +127,7 @@
             text-align: left;
         }
 
+        /* Column widths */
         .no-col {
             width: 3%;
         }
@@ -140,11 +141,11 @@
         }
 
         .class-col {
-            width: 8%;
+            width: 9%;
         }
 
         .dept-col {
-            width: 8%;
+            width: 9%;
         }
 
         .stat-col {
@@ -261,8 +262,8 @@
 </head>
 <body>
     <div class="header">
-        <h2>REKAP DATA ABSENSI BULANAN</h2>
-        <h3>Bulan {{ $month }} Tahun {{ $year }}</h3>
+        <h2>REKAP DATA ABSENSI SEMESTER</h2>
+        <h3>{{ $semester->name }} ({{ $semester->academic_year }})</h3>
     </div>
 
     <div class="info-box">
@@ -281,13 +282,13 @@
             </tr>
             <tr>
                 <td>Periode</td>
-                <td colspan="3">: {{ $month }} {{ $year }}</td>
+                <td colspan="3">: {{ $semester->start_date->format('d/m/Y') }} s/d {{ $semester->end_date->format('d/m/Y') }}</td>
             </tr>
         </table>
     </div>
 
     <div class="highlight-box">
-        <p><strong>Catatan:</strong> Rekap bulanan menghitung hari efektif dengan mengecualikan Sabtu, Minggu, dan hari libur. Persentase = <strong>(Total Kehadiran / Hari Efektif) × 100%</strong></p>
+        <p><strong>Catatan Penting:</strong> Rekap semester ini menghitung hari efektif sekolah dengan mengecualikan Sabtu, Minggu, dan hari libur dari kalender akademik. Persentase kehadiran dihitung berdasarkan: <strong>Persentase = (Total Kehadiran / Hari Efektif) × 100%</strong></p>
     </div>
 
     <table class="data-table">
@@ -364,7 +365,7 @@
 
     <div class="footer">
         <p>Dokumen ini digenerate secara otomatis oleh Sistem Absensi</p>
-        <p style="margin-top: 5px;">© {{ $year }} - Semua data bersifat rahasia dan hanya untuk keperluan administrasi sekolah</p>
+        <p style="margin-top: 5px;">© {{ $semester->academic_year }} - Semua data bersifat rahasia dan hanya untuk keperluan administrasi sekolah</p>
     </div>
 </body>
 </html>
