@@ -6,6 +6,7 @@ use App\Models\Student;
 use App\Models\Classes;
 use App\Models\Department;
 use App\Models\Attendance;
+use App\Models\Semester;
 use App\Exports\AttendanceReportExport;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
@@ -19,10 +20,10 @@ use Maatwebsite\Excel\Facades\Excel;
 #[Title('Laporan Kehadiran')]
 class Reports extends Component
 {
-    public $reportType = 'monthly'; // monthly, semester, custom
+    public $reportType = 'semester'; // monthly, semester, custom
     public $selectedMonth;
     public $selectedYear;
-    public $selectedSemester = 1;
+    public $selectedSemesterId;
     public $startDate;
     public $endDate;
     public $selectedDepartment = 'all';
@@ -30,10 +31,23 @@ class Reports extends Component
 
     public function mount()
     {
-        $this->selectedMonth = Carbon::now()->month;
-        $this->selectedYear = Carbon::now()->year;
-        $this->startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+        // Get active semester
+        $activeSemester = Semester::where('is_active', true)->first();
+
+        if ($activeSemester) {
+            // Use active semester as default
+            $this->selectedSemesterId = $activeSemester->id;
+            $this->startDate = Carbon::parse($activeSemester->start_date)->format('Y-m-d');
+            $this->endDate = Carbon::parse($activeSemester->end_date)->format('Y-m-d');
+            $this->selectedYear = Carbon::parse($activeSemester->start_date)->year;
+        } else {
+            // Fallback to current month if no active semester
+            $this->selectedMonth = Carbon::now()->month;
+            $this->selectedYear = Carbon::now()->year;
+            $this->startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $this->endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
+            $this->reportType = 'monthly';
+        }
     }
 
     public function updatedReportType()
@@ -42,12 +56,28 @@ class Reports extends Component
             $this->startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfMonth()->format('Y-m-d');
             $this->endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth()->format('Y-m-d');
         } elseif ($this->reportType === 'semester') {
-            if ($this->selectedSemester == 1) {
-                $this->startDate = Carbon::create($this->selectedYear, 7, 1)->format('Y-m-d');
-                $this->endDate = Carbon::create($this->selectedYear, 12, 31)->format('Y-m-d');
+            // Use active semester or first available semester
+            if ($this->selectedSemesterId) {
+                $semester = Semester::find($this->selectedSemesterId);
             } else {
-                $this->startDate = Carbon::create($this->selectedYear, 1, 1)->format('Y-m-d');
-                $this->endDate = Carbon::create($this->selectedYear, 6, 30)->format('Y-m-d');
+                $semester = Semester::where('is_active', true)->first() ?? Semester::latest()->first();
+            }
+
+            if ($semester) {
+                $this->selectedSemesterId = $semester->id;
+                $this->startDate = Carbon::parse($semester->start_date)->format('Y-m-d');
+                $this->endDate = Carbon::parse($semester->end_date)->format('Y-m-d');
+            }
+        }
+    }
+
+    public function updatedSelectedSemesterId()
+    {
+        if ($this->reportType === 'semester' && $this->selectedSemesterId) {
+            $semester = Semester::find($this->selectedSemesterId);
+            if ($semester) {
+                $this->startDate = Carbon::parse($semester->start_date)->format('Y-m-d');
+                $this->endDate = Carbon::parse($semester->end_date)->format('Y-m-d');
             }
         }
     }
@@ -61,11 +91,6 @@ class Reports extends Component
     }
 
     public function updatedSelectedYear()
-    {
-        $this->updatedReportType();
-    }
-
-    public function updatedSelectedSemester()
     {
         $this->updatedReportType();
     }
@@ -241,11 +266,13 @@ class Reports extends Component
         $data = $this->getReportData();
         $departments = Department::all();
         $classes = Classes::with('department')->get();
+        $semesters = Semester::orderBy('start_date', 'desc')->get();
 
         return view('livewire.kepala-sekolah.reports', [
             'reportData' => $data,
             'departments' => $departments,
             'classes' => $classes,
+            'semesters' => $semesters,
         ]);
     }
 }

@@ -98,29 +98,44 @@
 
             <!-- Sidebar -->
             <aside
-                class="fixed lg:static top-16 lg:top-0 h-[calc(100vh-4rem)] inset-y-0 left-0 z-20 w-64 bg-white border-r border-slate-200 pt-16 lg:pt-0 overflow-y-auto
+                class="fixed lg:sticky top-16 left-0 z-20 w-64 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 overflow-y-auto
                        lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out"
                 :class="{'translate-x-0': sidebarOpen}"
             >
                 <nav class="px-3 py-6 space-y-1">
                     <!-- Dashboard -->
-                    <a href="{{ route('kepala-sekolah.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('kepala-sekolah.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-700 hover:bg-blue-50' }}">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ route('kepala-sekolah.dashboard') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('kepala-sekolah.dashboard') ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-200' : 'text-slate-700 hover:bg-slate-50' }}">
+                        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
-                        Dashboard
+                        <span>Dashboard</span>
                     </a>
 
                     <!-- Laporan Section -->
-                    <div class="pt-6 pb-2">
-                        <h3 class="px-3 text-xs font-semibold text-blue-600 uppercase tracking-wider">Laporan</h3>
+                    <div class="pt-4 pb-2">
+                        <h3 class="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Laporan</h3>
                     </div>
-                    <a href="{{ route('kepala-sekolah.reports') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('kepala-sekolah.reports') ? 'bg-blue-600 text-white' : 'text-slate-700 hover:bg-blue-50' }}">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ route('kepala-sekolah.reports') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('kepala-sekolah.reports') ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-200' : 'text-slate-700 hover:bg-slate-50' }}">
+                        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
-                        Laporan Sekolah
+                        <span>Laporan Sekolah</span>
                     </a>
+
+                    <!-- Logout Button -->
+                    <div class="pt-4 pb-2 border-t border-slate-200 mt-4">
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50">
+                                <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                <span>Keluar</span>
+                            </button>
+                        </form>
+                    </div>
                 </nav>
             </aside>
 

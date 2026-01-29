@@ -44,21 +44,24 @@
                 <!-- Semester -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Semester</label>
-                    <select wire:model.live="selectedSemester" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                        <option value="1">Semester 1 (Juli - Desember)</option>
-                        <option value="2">Semester 2 (Januari - Juni)</option>
+                    <select wire:model.live="selectedSemesterId" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        @foreach($semesters as $semester)
+                            <option value="{{ $semester->id }}">
+                                {{ $semester->name }}
+                                ({{ \Carbon\Carbon::parse($semester->start_date)->isoFormat('D MMM Y') }} - {{ \Carbon\Carbon::parse($semester->end_date)->isoFormat('D MMM Y') }})
+                                @if($semester->is_active) - Aktif @endif
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
-                <!-- Year -->
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Tahun Ajaran</label>
-                    <select wire:model.live="selectedYear" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                        @for($year = date('Y'); $year >= date('Y') - 3; $year--)
-                            <option value="{{ $year }}">{{ $year }}/{{ $year + 1 }}</option>
-                        @endfor
-                    </select>
-                </div>
+                @if(count($semesters) == 0)
+                    <div class="col-span-2">
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                            <strong>Perhatian:</strong> Belum ada data semester. Silakan tambahkan semester terlebih dahulu di menu pengaturan.
+                        </div>
+                    </div>
+                @endif
             @else
                 <!-- Custom Date Range -->
                 <div>
