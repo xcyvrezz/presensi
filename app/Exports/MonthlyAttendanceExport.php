@@ -120,6 +120,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
             $hadirCount = $attendances->where('status', 'hadir')->count();
             $terlambatCount = $attendances->where('status', 'terlambat')->count();
             $dispensasiCount = $attendances->where('status', 'dispensasi')->count();
+            $tidakCheckoutCount = $attendances->where('status', 'tidak_checkout')->count();
 
             // Total kehadiran (hadir + terlambat + dispensasi)
             $totalKehadiran = $hadirCount + $terlambatCount + $dispensasiCount;
@@ -138,6 +139,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
+                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -163,6 +165,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
             $row['dispensasi'],
             $row['bolos'],
             $row['alpha'],
+            $row['tidak_checkout'],
             $row['total_kehadiran'],
             $this->effectiveSchoolDays,
             $row['percentage'] . '%',
@@ -188,6 +191,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                 'Dispensasi',
                 'Bolos',
                 'Alpha',
+                'Tidak Checkout',
                 'Total Hadir',
                 'Hari Efektif',
                 'Persentase',
@@ -210,12 +214,13 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
         $sheet->getColumnDimension('J')->setWidth(11);
         $sheet->getColumnDimension('K')->setWidth(10);
         $sheet->getColumnDimension('L')->setWidth(10);
-        $sheet->getColumnDimension('M')->setWidth(11);
+        $sheet->getColumnDimension('M')->setWidth(13);
         $sheet->getColumnDimension('N')->setWidth(11);
         $sheet->getColumnDimension('O')->setWidth(11);
+        $sheet->getColumnDimension('P')->setWidth(11);
 
         // Style for title (row 1)
-        $sheet->mergeCells('A1:O1');
+        $sheet->mergeCells('A1:P1');
         $sheet->getStyle('A1')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -234,7 +239,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
         $sheet->getRowDimension(1)->setRowHeight(35);
 
         // Style for subtitle (row 2)
-        $sheet->mergeCells('A2:O2');
+        $sheet->mergeCells('A2:P2');
         $sheet->getStyle('A2')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -253,7 +258,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
         $sheet->getRowDimension(2)->setRowHeight(25);
 
         // Style for header row (row 4)
-        $sheet->getStyle('A4:O4')->applyFromArray([
+        $sheet->getStyle('A4:P4')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'size' => 10,
@@ -289,7 +294,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                 $lastRow = $sheet->getHighestRow();
 
                 // Apply borders to all data rows
-                $sheet->getStyle('A4:O' . $lastRow)->applyFromArray([
+                $sheet->getStyle('A4:P' . $lastRow)->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -301,7 +306,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                 // Center align for specific columns
                 $sheet->getStyle('A5:A' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle('B5:B' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('D5:O' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('D5:P' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Left align for name column
                 $sheet->getStyle('C5:C' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
@@ -309,7 +314,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                 // Add alternating row colors for data rows (starting from row 5)
                 for ($row = 5; $row <= $lastRow; $row++) {
                     if ($row % 2 == 0) {
-                        $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
+                        $sheet->getStyle('A' . $row . ':P' . $row)->applyFromArray([
                             'fill' => [
                                 'fillType' => Fill::FILL_SOLID,
                                 'startColor' => ['rgb' => 'F1F5F9'], // Slate 100
@@ -319,7 +324,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                 }
 
                 // Add vertical alignment to all data cells
-                $sheet->getStyle('A5:O' . $lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('A5:P' . $lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
 
                 // Set row height for data rows
                 for ($row = 5; $row <= $lastRow; $row++) {
@@ -327,7 +332,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                 }
 
                 // Bold the numbers in attendance columns for better readability
-                $sheet->getStyle('F5:O' . $lastRow)->applyFromArray([
+                $sheet->getStyle('F5:P' . $lastRow)->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'size' => 10,
@@ -364,13 +369,17 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithMappi
                     $sheet->getStyle('L' . $row)->applyFromArray([
                         'font' => ['color' => ['rgb' => '475569']], // Slate 600
                     ]);
-                    // Total Kehadiran - Bold Green
+                    // Tidak Checkout - Orange
                     $sheet->getStyle('M' . $row)->applyFromArray([
+                        'font' => ['color' => ['rgb' => 'EA580C']], // Orange 600
+                    ]);
+                    // Total Kehadiran - Bold Green
+                    $sheet->getStyle('N' . $row)->applyFromArray([
                         'font' => ['color' => ['rgb' => '047857'], 'bold' => true], // Green 700
                     ]);
 
                     // Percentage - Bold with conditional formatting
-                    $cellValue = $sheet->getCell('O' . $row)->getValue();
+                    $cellValue = $sheet->getCell('P' . $row)->getValue();
                     $percentValue = floatval(str_replace('%', '', $cellValue));
 
                     if ($percentValue >= 90) {

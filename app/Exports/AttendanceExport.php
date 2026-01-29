@@ -217,6 +217,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             'sakit' => 'Sakit',
             'alpha' => 'Alpha',
             'pulang_cepat' => 'Pulang Cepat',
+            'tidak_checkout' => 'Tidak Checkout',
             default => $status,
         };
     }

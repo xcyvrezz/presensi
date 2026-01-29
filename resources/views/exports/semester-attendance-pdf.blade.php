@@ -203,6 +203,11 @@
             font-weight: bold;
         }
 
+        .tidak-checkout {
+            color: #ea580c;
+            font-weight: bold;
+        }
+
         .total-kehadiran {
             color: #047857;
             font-weight: bold;
@@ -306,6 +311,7 @@
                 <th class="stat-col">Dispensasi</th>
                 <th class="stat-col">Bolos</th>
                 <th class="stat-col">Alpha</th>
+                <th class="stat-col">Tidak Checkout</th>
                 <th class="total-col">Total Hadir</th>
                 <th class="effective-col">Hari Efektif</th>
                 <th class="percent-col">Persentase</th>
@@ -326,6 +332,7 @@
                 <td class="text-center dispensasi">{{ $data['dispensasi'] }}</td>
                 <td class="text-center bolos">{{ $data['bolos'] }}</td>
                 <td class="text-center alpha">{{ $data['alpha'] }}</td>
+                <td class="text-center tidak-checkout">{{ $data['tidak_checkout'] }}</td>
                 <td class="text-center total-kehadiran">{{ $data['total_kehadiran'] }}</td>
                 <td class="text-center">{{ $effectiveSchoolDays }}</td>
                 <td class="text-center
@@ -338,7 +345,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="15" class="text-center" style="padding: 20px; color: #94a3b8;">
+                <td colspan="16" class="text-center" style="padding: 20px; color: #94a3b8;">
                     Tidak ada data siswa untuk periode ini
                 </td>
             </tr>
@@ -356,6 +363,7 @@
             <span class="legend-item"><span class="dispensasi">●</span> Dispensasi</span>
             <span class="legend-item"><span class="bolos">●</span> Bolos</span>
             <span class="legend-item"><span class="alpha">●</span> Alpha</span>
+            <span class="legend-item"><span class="tidak-checkout">●</span> Tidak Checkout</span>
             <span class="legend-item">|</span>
             <span class="legend-item"><span class="percent-excellent">●</span> ≥90% (Sangat Baik)</span>
             <span class="legend-item"><span class="percent-good">●</span> 75-89% (Baik)</span>

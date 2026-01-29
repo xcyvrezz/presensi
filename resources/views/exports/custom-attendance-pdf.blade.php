@@ -315,6 +315,7 @@
                 <th class="col-status">Dispensasi</th>
                 <th class="col-status">Bolos</th>
                 <th class="col-status">Alpha</th>
+                <th class="col-status">Tidak Checkout</th>
                 <th class="col-total">Total Hadir</th>
                 <th class="col-effective">Hari Efektif</th>
                 <th class="col-percentage">Persentase</th>
@@ -335,6 +336,7 @@
                     <td class="text-center">{{ $data['dispensasi'] }}</td>
                     <td class="text-center">{{ $data['bolos'] }}</td>
                     <td class="text-center">{{ $data['alpha'] }}</td>
+                    <td class="text-center">{{ $data['tidak_checkout'] }}</td>
                     <td class="text-center font-bold">{{ $data['total_kehadiran'] }}</td>
                     <td class="text-center">{{ $effectiveSchoolDays }}</td>
                     <td class="text-center {{ $data['percentage'] >= 90 ? 'percent-excellent' : ($data['percentage'] >= 75 ? 'percent-good' : 'percent-poor') }}">
@@ -343,7 +345,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="15" class="text-center" style="padding: 20px;">
+                    <td colspan="16" class="text-center" style="padding: 20px;">
                         Tidak ada data siswa untuk kelas ini.
                     </td>
                 </tr>
@@ -361,6 +363,7 @@
             <div class="legend-item"><strong>Dispensasi:</strong> Siswa dispensasi (tugas sekolah)</div>
             <div class="legend-item"><strong>Bolos:</strong> Siswa tidak hadir tanpa keterangan</div>
             <div class="legend-item"><strong>Alpha:</strong> Siswa tidak hadir (dicatat otomatis)</div>
+            <div class="legend-item"><strong>Tidak Checkout:</strong> Siswa hadir tapi tidak checkout</div>
         </div>
     </div>
 

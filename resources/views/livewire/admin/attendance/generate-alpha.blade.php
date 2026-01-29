@@ -166,7 +166,7 @@
                         <div class="mt-6 p-5 bg-blue-50 border border-blue-200 rounded-xl">
                             <h3 class="text-lg font-bold text-blue-900 mb-4">Preview Data</h3>
 
-                            <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <div class="bg-white p-3 rounded-lg">
                                     <p class="text-xs text-slate-600">Total Siswa Aktif</p>
                                     <p class="text-xl font-bold text-slate-900">{{ $previewData['total_active_students'] }}</p>
@@ -178,6 +178,10 @@
                                 <div class="bg-white p-3 rounded-lg">
                                     <p class="text-xs text-slate-600">Tidak Absen (Alpha)</p>
                                     <p class="text-xl font-bold text-red-600">{{ $previewData['students_without_attendance'] }}</p>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg">
+                                    <p class="text-xs text-slate-600">Tidak Checkout</p>
+                                    <p class="text-xl font-bold text-amber-600">{{ $previewData['students_without_checkout'] ?? 0 }}</p>
                                 </div>
                             </div>
 

@@ -45,6 +45,7 @@ class AttendanceReport extends Component
     public $totalBolos = 0;
     public $totalPulangCepat = 0;
     public $totalLupaCheckout = 0;
+    public $totalTidakCheckout = 0;
 
     public function mount()
     {
@@ -130,6 +131,7 @@ class AttendanceReport extends Component
         $this->totalDispensasi = $attendances->where('status', 'dispensasi')->count();
         $this->totalBolos = $attendances->where('status', 'bolos')->count();
         $this->totalPulangCepat = $attendances->where('status', 'pulang_cepat')->count();
+        $this->totalTidakCheckout = $attendances->where('status', 'tidak_checkout')->count();
 
         // Calculate lupa checkout (has check-in but no check-out)
         $this->totalLupaCheckout = $attendances->filter(function($attendance) {
@@ -209,6 +211,7 @@ class AttendanceReport extends Component
             'totalBolos' => $this->totalBolos,
             'totalPulangCepat' => $this->totalPulangCepat,
             'totalLupaCheckout' => $this->totalLupaCheckout,
+            'totalTidakCheckout' => $this->totalTidakCheckout,
         ])->setPaper('a4', 'landscape');
 
         $fileName = 'Absensi_' . str_replace(' ', '_', $this->class->name) . '_' . ($this->dateFrom ?? 'All') . '_to_' . ($this->dateTo ?? 'All') . '_' . now()->format('YmdHis') . '.pdf';
@@ -270,6 +273,7 @@ class AttendanceReport extends Component
                 'sakit' => $attendances->where('status', 'sakit')->count(),
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
+                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
             ];
         }
 
@@ -383,6 +387,7 @@ class AttendanceReport extends Component
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
+                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -518,6 +523,7 @@ class AttendanceReport extends Component
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
+                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];

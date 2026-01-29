@@ -192,6 +192,7 @@ class WaliKelasAttendanceExport implements FromCollection, WithHeadings, WithMap
             'sakit' => 'Sakit',
             'alpha' => 'Alpha',
             'pulang_cepat' => 'Pulang Cepat',
+            'tidak_checkout' => 'Tidak Checkout',
             default => $status,
         };
     }

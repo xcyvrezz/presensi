@@ -119,6 +119,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
             $hadirCount = $attendances->where('status', 'hadir')->count();
             $terlambatCount = $attendances->where('status', 'terlambat')->count();
             $dispensasiCount = $attendances->where('status', 'dispensasi')->count();
+            $tidakCheckoutCount = $attendances->where('status', 'tidak checkout')->count();
 
             // Total kehadiran (hadir + terlambat + dispensasi)
             $totalKehadiran = $hadirCount + $terlambatCount + $dispensasiCount;
@@ -137,6 +138,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
+                'tidak checkout' => $tidakCheckoutCount,
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -162,6 +164,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
             $row['dispensasi'],
             $row['bolos'],
             $row['alpha'],
+            $row['tidak checkout'],
             $row['total_kehadiran'],
             $this->effectiveSchoolDays,
             $row['percentage'] . '%',
@@ -191,6 +194,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
                 'Dispensasi',
                 'Bolos',
                 'Alpha',
+                'Tidak Checkout',
                 'Total Hadir',
                 'Hari Efektif',
                 'Persentase',
@@ -206,7 +210,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
     public function styles(Worksheet $sheet)
     {
         // Title row styling
-        $sheet->mergeCells('A1:O1');
+        $sheet->mergeCells('A1:P1');
         $sheet->getStyle('A1')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -224,7 +228,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
         ]);
 
         // Period row styling
-        $sheet->mergeCells('A2:O2');
+        $sheet->mergeCells('A2:P2');
         $sheet->getStyle('A2')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -242,7 +246,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
         ]);
 
         // Info row styling
-        $sheet->mergeCells('A3:O3');
+        $sheet->mergeCells('A3:P3');
         $sheet->getStyle('A3')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -258,7 +262,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
         ]);
 
         // Header row styling (row 5)
-        $sheet->getStyle('A5:O5')->applyFromArray([
+        $sheet->getStyle('A5:P5')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
@@ -292,9 +296,10 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
         $sheet->getColumnDimension('J')->setWidth(10);
         $sheet->getColumnDimension('K')->setWidth(8);
         $sheet->getColumnDimension('L')->setWidth(8);
-        $sheet->getColumnDimension('M')->setWidth(12);
+        $sheet->getColumnDimension('M')->setWidth(13);
         $sheet->getColumnDimension('N')->setWidth(12);
         $sheet->getColumnDimension('O')->setWidth(12);
+        $sheet->getColumnDimension('P')->setWidth(12);
 
         // Set row heights
         $sheet->getRowDimension(1)->setRowHeight(30);
@@ -315,7 +320,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
                 // Apply borders and alternating colors to data rows
                 for ($row = 6; $row <= $highestRow; $row++) {
                     // Borders
-                    $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+                    $sheet->getStyle("A{$row}:P{$row}")->applyFromArray([
                         'borders' => [
                             'allBorders' => [
                                 'borderStyle' => Border::BORDER_THIN,
@@ -326,7 +331,7 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
 
                     // Alternating row colors
                     if ($row % 2 == 0) {
-                        $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+                        $sheet->getStyle("A{$row}:P{$row}")->applyFromArray([
                             'fill' => [
                                 'fillType' => Fill::FILL_SOLID,
                                 'startColor' => ['rgb' => 'FFFBEB'], // Very light amber
@@ -336,10 +341,10 @@ class CustomDateRangeAttendanceExport implements FromCollection, WithHeadings, W
 
                     // Center align numeric columns
                     $sheet->getStyle("A{$row}:B{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("F{$row}:O{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("F{$row}:P{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                     // Conditional formatting for percentage
-                    $percentageCell = "O{$row}";
+                    $percentageCell = "P{$row}";
                     $percentageValue = (float) str_replace('%', '', $sheet->getCell($percentageCell)->getValue());
 
                     if ($percentageValue >= 90) {

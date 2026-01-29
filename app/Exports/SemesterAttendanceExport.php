@@ -98,6 +98,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
             $dispensasiCount = $attendances->where('status', 'dispensasi')->count();
             $bolosCount = $attendances->where('status', 'bolos')->count();
             $alphaCount = $attendances->where('status', 'alpha')->count();
+            $tidakCheckoutCount = $attendances->where('status', 'tidak_checkout')->count();
 
             // Total kehadiran (hadir + terlambat + dispensasi)
             $totalKehadiran = $hadirCount + $terlambatCount + $dispensasiCount;
@@ -116,6 +117,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $bolosCount,
                 'alpha' => $alphaCount,
+                'tidak_checkout' => $tidakCheckoutCount,
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -141,6 +143,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
             $row['dispensasi'],
             $row['bolos'],
             $row['alpha'],
+            $row['tidak_checkout'],
             $row['total_kehadiran'],
             $this->effectiveSchoolDays,
             $row['percentage'] . '%',
@@ -167,6 +170,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                 'Dispensasi',
                 'Bolos',
                 'Alpha',
+                'Tidak Checkout',
                 'Total Hadir',
                 'Hari Efektif',
                 'Persentase',
@@ -189,12 +193,13 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
         $sheet->getColumnDimension('J')->setWidth(12);
         $sheet->getColumnDimension('K')->setWidth(10);
         $sheet->getColumnDimension('L')->setWidth(10);
-        $sheet->getColumnDimension('M')->setWidth(12);
+        $sheet->getColumnDimension('M')->setWidth(13);
         $sheet->getColumnDimension('N')->setWidth(12);
         $sheet->getColumnDimension('O')->setWidth(12);
+        $sheet->getColumnDimension('P')->setWidth(12);
 
         // Style for title (row 1)
-        $sheet->mergeCells('A1:O1');
+        $sheet->mergeCells('A1:P1');
         $sheet->getStyle('A1')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -213,7 +218,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
         $sheet->getRowDimension(1)->setRowHeight(35);
 
         // Style for subtitle (row 2)
-        $sheet->mergeCells('A2:O2');
+        $sheet->mergeCells('A2:P2');
         $sheet->getStyle('A2')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -232,7 +237,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
         $sheet->getRowDimension(2)->setRowHeight(28);
 
         // Style for info row (row 3)
-        $sheet->mergeCells('A3:O3');
+        $sheet->mergeCells('A3:P3');
         $sheet->getStyle('A3')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -251,7 +256,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
         $sheet->getRowDimension(3)->setRowHeight(25);
 
         // Style for header row (row 5)
-        $sheet->getStyle('A5:O5')->applyFromArray([
+        $sheet->getStyle('A5:P5')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'size' => 11,
@@ -287,7 +292,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                 $lastRow = $sheet->getHighestRow();
 
                 // Apply borders to all data rows
-                $sheet->getStyle('A5:O' . $lastRow)->applyFromArray([
+                $sheet->getStyle('A5:P' . $lastRow)->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -299,7 +304,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                 // Center align for specific columns
                 $sheet->getStyle('A6:A' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle('B6:B' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('D6:O' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('D6:P' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Left align for name column
                 $sheet->getStyle('C6:C' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
@@ -307,7 +312,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                 // Add alternating row colors for data rows (starting from row 6)
                 for ($row = 6; $row <= $lastRow; $row++) {
                     if ($row % 2 == 0) {
-                        $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
+                        $sheet->getStyle('A' . $row . ':P' . $row)->applyFromArray([
                             'fill' => [
                                 'fillType' => Fill::FILL_SOLID,
                                 'startColor' => ['rgb' => 'F1F5F9'], // Slate 100
@@ -317,7 +322,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                 }
 
                 // Add vertical alignment to all data cells
-                $sheet->getStyle('A6:O' . $lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('A6:P' . $lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
 
                 // Set row height for data rows
                 for ($row = 6; $row <= $lastRow; $row++) {
@@ -325,7 +330,7 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                 }
 
                 // Bold the numbers in attendance columns for better readability
-                $sheet->getStyle('F6:O' . $lastRow)->applyFromArray([
+                $sheet->getStyle('F6:P' . $lastRow)->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'size' => 10,
@@ -362,27 +367,31 @@ class SemesterAttendanceExport implements FromCollection, WithHeadings, WithMapp
                     $sheet->getStyle('L' . $row)->applyFromArray([
                         'font' => ['color' => ['rgb' => '475569']], // Slate 600
                     ]);
-                    // Total Kehadiran - Bold Green
+                    // Tidak Checkout - Orange
                     $sheet->getStyle('M' . $row)->applyFromArray([
+                        'font' => ['color' => ['rgb' => 'EA580C']], // Orange 600
+                    ]);
+                    // Total Kehadiran - Bold Green
+                    $sheet->getStyle('N' . $row)->applyFromArray([
                         'font' => ['color' => ['rgb' => '047857'], 'bold' => true], // Green 700
                     ]);
                     // Percentage - Bold with conditional formatting
-                    $cellValue = $sheet->getCell('O' . $row)->getValue();
+                    $cellValue = $sheet->getCell('P' . $row)->getValue();
                     $percentValue = floatval(str_replace('%', '', $cellValue));
 
                     if ($percentValue >= 90) {
                         // Green for >= 90%
-                        $sheet->getStyle('O' . $row)->applyFromArray([
+                        $sheet->getStyle('P' . $row)->applyFromArray([
                             'font' => ['color' => ['rgb' => '047857'], 'bold' => true],
                         ]);
                     } elseif ($percentValue >= 75) {
                         // Yellow for 75-89%
-                        $sheet->getStyle('O' . $row)->applyFromArray([
+                        $sheet->getStyle('P' . $row)->applyFromArray([
                             'font' => ['color' => ['rgb' => 'CA8A04'], 'bold' => true],
                         ]);
                     } else {
                         // Red for < 75%
-                        $sheet->getStyle('O' . $row)->applyFromArray([
+                        $sheet->getStyle('P' . $row)->applyFromArray([
                             'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
                         ]);
                     }
