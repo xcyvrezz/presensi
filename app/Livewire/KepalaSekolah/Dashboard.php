@@ -2,218 +2,165 @@
 
 namespace App\Livewire\KepalaSekolah;
 
-use App\Models\Student;
+use App\Models\AcademicCalendar;
+use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\Department;
-use App\Models\Attendance;
-use App\Models\User;
 use App\Models\Semester;
-use App\Models\AcademicCalendar;
-use Livewire\Component;
+use App\Models\Student;
+use App\Models\User;
+use App\Services\AttendanceSummaryService;
+use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 #[Layout('layouts.kepala-sekolah')]
 #[Title('Dashboard Kepala Sekolah')]
 class Dashboard extends Component
 {
-    public $selectedPeriod = 'today'; // today, week, month, year
+    public $selectedPeriod = 'today';
 
-    public function render()
+    public function render(AttendanceSummaryService $summaryService)
     {
-        // Check if today is a holiday
         $isHoliday = AcademicCalendar::isHoliday(Carbon::today());
         $holidayInfo = null;
 
         if ($isHoliday) {
             $today = Carbon::today()->format('Y-m-d');
-
             $holidayInfo = AcademicCalendar::where('is_holiday', true)
                 ->whereDate('start_date', '<=', $today)
                 ->whereDate('end_date', '>=', $today)
                 ->first();
         }
 
-        $overallStats = $this->getOverallStatistics();
-        $departmentStats = $this->getDepartmentStatistics();
-        $monthlyTrend = $this->getMonthlyTrend();
-        $topClasses = $this->getTopClasses();
+        $period = $summaryService->getActivePeriod();
+        $overallStats = $this->getOverallStatistics($summaryService, $period);
+        $departmentStats = $this->getDepartmentStatistics($summaryService, $period);
+        $monthlyTrend = $this->getMonthlyTrend($summaryService, $period['semester']);
+        $topClasses = $this->getTopClasses($summaryService, $period);
         $todayAttendance = $this->getTodayAttendanceByHour();
 
-        return view('livewire.kepala-sekolah.dashboard', [
-            'isHoliday' => $isHoliday,
-            'holidayInfo' => $holidayInfo,
-            'overallStats' => $overallStats,
-            'departmentStats' => $departmentStats,
-            'monthlyTrend' => $monthlyTrend,
-            'topClasses' => $topClasses,
-            'todayAttendance' => $todayAttendance,
-        ]);
+        return view('livewire.kepala-sekolah.dashboard', compact(
+            'isHoliday',
+            'holidayInfo',
+            'overallStats',
+            'departmentStats',
+            'monthlyTrend',
+            'topClasses',
+            'todayAttendance',
+            'period'
+        ));
     }
 
-    private function getOverallStatistics()
+    private function getOverallStatistics(AttendanceSummaryService $summaryService, array $period)
     {
         $totalStudents = Student::where('is_active', true)->count();
-        $totalClasses = Classes::count();
-        $totalDepartments = Department::count();
-        $totalTeachers = User::waliKelas()->count();
-
-        // Today's attendance - KONSISTEN
-        $today = Carbon::today();
-        $todayAttendances = Attendance::whereDate('date', $today)->get();
-
-        // Present = hanya yang benar-benar hadir (hadir + terlambat)
-        $totalPresent = $todayAttendances->whereIn('status', ['hadir', 'terlambat'])->count();
-
-        // LOGIC BARU: Alpha = record yang sudah di-generate dengan status 'alpha'
-        $totalAlpha = $todayAttendances->where('status', 'alpha')->count();
-
-        // Belum absen = siswa yang belum punya record sama sekali
-        $totalBelumAbsen = $totalStudents - $todayAttendances->count();
-
-        $attendancePercentage = $totalStudents > 0 ? round(($totalPresent / $totalStudents) * 100, 1) : 0;
+        $periodSummary = $summaryService->getAggregateSummary(Student::active(), $period['start_date'], $period['end_date']);
+        $todayAttendances = Attendance::whereDate('date', Carbon::today())->get();
+        $todayPresent = $todayAttendances->whereIn('status', ['hadir', 'terlambat'])->count();
 
         return [
             'total_students' => $totalStudents,
-            'total_classes' => $totalClasses,
-            'total_departments' => $totalDepartments,
-            'total_teachers' => $totalTeachers,
-            'today_present' => $totalPresent,
-            'today_absent' => $totalBelumAbsen, // Belum absen
-            'today_late' => $todayAttendances->where('status', 'terlambat')->count(),
-            'today_sick' => $todayAttendances->where('status', 'sakit')->count(),
-            'today_permission' => $todayAttendances->where('status', 'izin')->count(),
-            'today_alpha' => $totalAlpha, // Record dengan status alpha
-            'today_bolos' => $todayAttendances->where('status', 'bolos')->count(),
-            'today_dispensation' => $todayAttendances->where('status', 'dispensasi')->count(),
-            'attendance_percentage' => $attendancePercentage,
+            'total_classes' => Classes::count(),
+            'total_departments' => Department::count(),
+            'total_teachers' => User::waliKelas()->count(),
+            'today_present' => $todayPresent,
+            'today_absent' => max($totalStudents - $todayAttendances->count(), 0),
+            'attendance_percentage' => $totalStudents > 0 ? round(($todayPresent / $totalStudents) * 100, 1) : 0,
+            'period_attendance_percentage' => $periodSummary['attendance_rate'],
+            'period_effective_days' => $periodSummary['effective_days'],
+            'period_present' => $periodSummary['present_count'],
+            'period_expected' => $periodSummary['expected_records'],
+            'period_missing' => $periodSummary['missing_records'],
+            'period_alpha' => $periodSummary['alpha_count'],
+            'period_bolos' => $periodSummary['bolos_count'],
         ];
     }
 
-    private function getDepartmentStatistics()
+    private function getDepartmentStatistics(AttendanceSummaryService $summaryService, array $period)
     {
-        $departments = Department::withCount(['students' => function ($q) {
-            $q->where('students.is_active', true);
-        }])->get();
+        return Department::withCount(['students' => fn ($q) => $q->where('students.is_active', true)])
+            ->get()
+            ->map(function ($dept) use ($summaryService, $period) {
+                $studentQuery = Student::active()->whereHas('class', fn ($q) => $q->where('department_id', $dept->id));
+                $summary = $summaryService->getAggregateSummary($studentQuery, $period['start_date'], $period['end_date'], $dept->id);
 
-        $stats = [];
-        $today = Carbon::today();
-
-        foreach ($departments as $dept) {
-            $todayAttendances = Attendance::whereDate('date', $today)
-                ->whereHas('student.class', function ($q) use ($dept) {
-                    $q->where('department_id', $dept->id);
-                })->get();
-
-            $present = $todayAttendances->whereIn('status', ['hadir', 'terlambat'])->count();
-
-            // Belum absen = siswa jurusan ini yang tidak punya record
-            $absent = $dept->students_count - $todayAttendances->count();
-
-            $percentage = $dept->students_count > 0 ? round(($present / $dept->students_count) * 100, 1) : 0;
-
-            $stats[] = [
-                'name' => $dept->name,
-                'code' => $dept->code,
-                'total_students' => $dept->students_count,
-                'present' => $present,
-                'absent' => $absent,
-                'percentage' => $percentage,
-            ];
-        }
-
-        return collect($stats)->sortByDesc('percentage')->values();
+                return [
+                    'name' => $dept->name,
+                    'code' => $dept->code,
+                    'total_students' => $dept->students_count,
+                    'present' => $summary['present_count'],
+                    'expected_records' => $summary['expected_records'],
+                    'absent' => $summary['missing_records'] + $summary['alpha_count'] + $summary['bolos_count'],
+                    'percentage' => $summary['attendance_rate'],
+                ];
+            })
+            ->sortByDesc('percentage')
+            ->values();
     }
 
-    private function getMonthlyTrend()
+    private function getMonthlyTrend(AttendanceSummaryService $summaryService, ?Semester $semester)
     {
-        // Get active semester for period calculation
-        $activeSemester = Semester::where('is_active', true)->first();
+        $today = Carbon::today();
+        $semesterStart = $semester ? Carbon::parse($semester->start_date)->startOfMonth() : $today->copy()->startOfYear();
+        $semesterEnd = $semester ? Carbon::parse($semester->end_date)->min($today) : $today;
+        $months = [];
+        $cursor = $semesterStart->copy();
 
-        if (!$activeSemester) {
-            // Fallback to current year if no active semester
-            $year = Carbon::now()->year;
-            $startMonth = 1;
-            $endMonth = 12;
-        } else {
-            // Use semester period
-            $startDate = Carbon::parse($activeSemester->start_date);
-            $endDate = Carbon::parse($activeSemester->end_date);
-            $year = $startDate->year;
-            $startMonth = $startDate->month;
-            $endMonth = $endDate->month;
+        while ($cursor->lte($semesterEnd)) {
+            $startOfMonth = $cursor->copy()->startOfMonth()->max($semester ? Carbon::parse($semester->start_date) : $cursor->copy()->startOfMonth());
+            $endOfMonth = $cursor->copy()->endOfMonth()->min($semesterEnd);
+            $summary = $summaryService->getAggregateSummary(Student::active(), $startOfMonth, $endOfMonth);
 
-            // Handle if semester crosses year boundary
-            if ($endDate->year > $startDate->year) {
-                $endMonth = 12; // Show until end of start year
-            }
-        }
-
-        $monthlyData = [];
-        $totalStudents = Student::where('is_active', true)->count();
-
-        for ($month = $startMonth; $month <= $endMonth; $month++) {
-            $startOfMonth = Carbon::create($year, $month, 1)->startOfMonth();
-            $endOfMonth = Carbon::create($year, $month, 1)->endOfMonth();
-
-            $attendances = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])->get();
-
-            $workingDays = $this->getWorkingDaysInMonth($year, $month);
-            $expectedAttendances = $workingDays * $totalStudents;
-
-            $actualPresent = $attendances->whereIn('status', ['hadir', 'terlambat'])->count();
-            $percentage = $expectedAttendances > 0 ? round(($actualPresent / $expectedAttendances) * 100, 1) : 0;
-
-            $monthlyData[] = [
-                'month' => Carbon::create($year, $month, 1)->format('M'),
-                'present' => $attendances->where('status', 'hadir')->count(),
-                'late' => $attendances->where('status', 'terlambat')->count(),
-                'absent' => ($workingDays * $totalStudents) - $attendances->count(), // Alpha
-                'percentage' => $percentage,
+            $months[] = [
+                'month' => $cursor->translatedFormat('M'),
+                'present' => $summary['hadir_count'],
+                'late' => $summary['late_count'],
+                'absent' => $summary['alpha_count'] + $summary['bolos_count'] + $summary['missing_records'],
+                'percentage' => $summary['attendance_rate'],
+                'effective_days' => $summary['effective_days'],
             ];
+
+            $cursor->addMonth()->startOfMonth();
         }
 
-        return $monthlyData;
+        return $months;
     }
 
-    private function getTopClasses()
+    private function getTopClasses(AttendanceSummaryService $summaryService, array $period)
     {
-        $classes = Classes::with('department')->get();
-        $classStats = [];
-        $today = Carbon::today();
+        return Classes::with('department')
+            ->active()
+            ->get()
+            ->map(function ($class) use ($summaryService, $period) {
+                $studentQuery = $class->students()->where('is_active', true);
+                $studentCount = (clone $studentQuery)->count();
 
-        foreach ($classes as $class) {
-            $students = Student::where('class_id', $class->id)
-                ->where('is_active', true)
-                ->get();
+                if ($studentCount === 0) {
+                    return null;
+                }
 
-            if ($students->count() === 0) continue;
+                $summary = $summaryService->getAggregateSummary($studentQuery, $period['start_date'], $period['end_date'], $class->department_id, $class->id);
 
-            $attendances = Attendance::whereDate('date', $today)
-                ->whereIn('student_id', $students->pluck('id'))
-                ->get();
-
-            $present = $attendances->whereIn('status', ['hadir', 'terlambat'])->count();
-            $percentage = round(($present / $students->count()) * 100, 1);
-
-            $classStats[] = [
-                'class_name' => $class->name,
-                'department' => $class->department->name,
-                'total_students' => $students->count(),
-                'present' => $present,
-                'percentage' => $percentage,
-            ];
-        }
-
-        return collect($classStats)->sortByDesc('percentage')->take(5)->values();
+                return [
+                    'class_name' => $class->name,
+                    'department' => $class->department->name ?? '-',
+                    'total_students' => $studentCount,
+                    'present' => $summary['present_count'],
+                    'expected_records' => $summary['expected_records'],
+                    'percentage' => $summary['attendance_rate'],
+                ];
+            })
+            ->filter()
+            ->sortByDesc('percentage')
+            ->take(5)
+            ->values();
     }
 
     private function getTodayAttendanceByHour()
     {
-        $today = Carbon::today();
-        $attendances = Attendance::whereDate('date', $today)
+        $attendances = Attendance::whereDate('date', Carbon::today())
             ->selectRaw('HOUR(check_in_time) as hour, COUNT(*) as count')
             ->groupBy('hour')
             ->orderBy('hour')
@@ -229,25 +176,5 @@ class Dashboard extends Component
         }
 
         return $hourlyData;
-    }
-
-    private function getWorkingDaysInMonth($year, $month)
-    {
-        $startDate = Carbon::create($year, $month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
-        $workingDays = 0;
-
-        // Get all holiday dates in this range
-        $holidayDates = \App\Models\AcademicCalendar::getHolidayDates($startDate, $endDate);
-
-        while ($startDate <= $endDate) {
-            // Count weekdays only (Monday-Friday) and exclude holidays
-            if ($startDate->isWeekday() && !in_array($startDate->format('Y-m-d'), $holidayDates)) {
-                $workingDays++;
-            }
-            $startDate->addDay();
-        }
-
-        return $workingDays;
     }
 }

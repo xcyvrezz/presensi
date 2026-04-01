@@ -42,11 +42,11 @@ class WaliKelasAttendanceExport implements FromCollection, WithHeadings, WithMap
 
         // Apply date filters
         if ($this->dateFrom) {
-            $query->whereDate('check_in_time', '>=', $this->dateFrom);
+            $query->whereDate('date', '>=', $this->dateFrom);
         }
 
         if ($this->dateTo) {
-            $query->whereDate('check_in_time', '<=', $this->dateTo);
+            $query->whereDate('date', '<=', $this->dateTo);
         }
 
         // Apply status filter
@@ -54,7 +54,7 @@ class WaliKelasAttendanceExport implements FromCollection, WithHeadings, WithMap
             $query->where('status', $this->statusFilter);
         }
 
-        return $query->orderBy('check_in_time', 'desc')->get();
+        return $query->orderBy('date', 'desc')->orderBy('check_in_time', 'desc')->get();
     }
 
     /**
@@ -88,7 +88,7 @@ class WaliKelasAttendanceExport implements FromCollection, WithHeadings, WithMap
 
         return [
             $row,
-            $attendance->check_in_time ? $attendance->check_in_time->format('d/m/Y') : '-',
+            $attendance->date ? $attendance->date->format('d/m/Y') : '-',
             $attendance->student->nis ?? '-',
             $attendance->student->full_name ?? '-',
             $attendance->check_in_time ? $attendance->check_in_time->format('H:i:s') : '-',
@@ -97,7 +97,7 @@ class WaliKelasAttendanceExport implements FromCollection, WithHeadings, WithMap
             $attendance->late_minutes ?? 0,
             $attendance->early_leave_minutes ?? 0,
             $attendance->percentage . '%',
-            $this->getMethodLabel($attendance->method),
+            $this->getMethodLabel($attendance->method ?? $attendance->check_in_method),
             $attendance->location->name ?? 'Physical Reader',
         ];
     }
@@ -190,7 +190,9 @@ class WaliKelasAttendanceExport implements FromCollection, WithHeadings, WithMap
             'terlambat' => 'Terlambat',
             'izin' => 'Izin',
             'sakit' => 'Sakit',
+            'dispensasi' => 'Dispensasi',
             'alpha' => 'Alpha',
+            'bolos' => 'Bolos',
             'pulang_cepat' => 'Pulang Cepat',
             'tidak_checkout' => 'Tidak Checkout',
             default => $status,
@@ -200,10 +202,10 @@ class WaliKelasAttendanceExport implements FromCollection, WithHeadings, WithMap
     private function getMethodLabel($method)
     {
         return match($method) {
-            'nfc' => 'NFC',
-            'rfid' => 'RFID',
+            'nfc', 'nfc_mobile' => 'NFC',
+            'rfid', 'rfid_physical' => 'RFID',
             'manual' => 'Manual',
-            'qr' => 'QR Code',
+            'system' => 'System',
             default => $method,
         };
     }

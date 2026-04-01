@@ -10,6 +10,20 @@ class Attendance extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const STATUS_PERCENTAGES = [
+        'hadir' => 100,
+        'terlambat' => 75,
+        'izin' => 50,
+        'sakit' => 50,
+        'dispensasi' => 75,
+        'pulang_cepat' => 75,
+        'izin_terlambat' => 50,
+        'izin_pulang_cepat' => 50,
+        'alpha' => 0,
+        'bolos' => 0,
+        'libur' => 100,
+    ];
+
     protected $fillable = [
         'student_id',
         'class_id',
@@ -100,6 +114,14 @@ class Attendance extends Model
     public function checkOutLocation()
     {
         return $this->belongsTo(AttendanceLocation::class, 'check_out_location_id');
+    }
+
+    /**
+     * Backward-compatible alias for check-in location.
+     */
+    public function location()
+    {
+        return $this->belongsTo(AttendanceLocation::class, 'check_in_location_id');
     }
 
     /**
@@ -236,5 +258,45 @@ class Attendance extends Model
     public function scopeToday($query)
     {
         return $query->whereDate('date', now()->toDateString());
+    }
+
+    /**
+     * Normalize legacy/current attendance methods to database values.
+     */
+    public static function normalizeMethod(?string $method): ?string
+    {
+        return match ($method) {
+            'rfid', 'rfid_physical' => 'rfid_physical',
+            'nfc', 'nfc_mobile' => 'nfc_mobile',
+            'manual' => 'manual',
+            'system' => 'system',
+            null, '' => null,
+            default => $method,
+        };
+    }
+
+    /**
+     * Return legacy-friendly method value for old views/components.
+     */
+    public static function legacyMethod(?string $method): ?string
+    {
+        return match (static::normalizeMethod($method)) {
+            'rfid_physical' => 'rfid',
+            'nfc_mobile' => 'nfc',
+            'manual' => 'manual',
+            'system' => 'system',
+            null => null,
+            default => $method,
+        };
+    }
+
+    public static function percentageForStatus(?string $status): float
+    {
+        return (float) (static::STATUS_PERCENTAGES[$status] ?? 0);
+    }
+
+    public function getMethodAttribute(): ?string
+    {
+        return static::legacyMethod($this->check_in_method);
     }
 }

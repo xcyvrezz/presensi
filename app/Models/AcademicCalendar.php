@@ -43,25 +43,16 @@ class AcademicCalendar extends Model
         'deleted_at' => 'datetime',
     ];
 
-    /**
-     * Get the semester this calendar belongs to
-     */
     public function semester()
     {
         return $this->belongsTo(Semester::class);
     }
 
-    /**
-     * Get the user who created this calendar event
-     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Check if given date is a holiday
-     */
     public static function isHoliday($date): bool
     {
         $date = is_string($date) ? \Carbon\Carbon::parse($date) : $date;
@@ -71,96 +62,103 @@ class AcademicCalendar extends Model
             ->exists();
     }
 
-    /**
-     * Get all holiday dates in a date range
-     */
-    public static function getHolidayDates($startDate, $endDate): array
+    public static function getHolidayDates($startDate, $endDate, ?int $departmentId = null, ?int $classId = null): array
+    {
+        return static::getDatesByFilter($startDate, $endDate, true, $departmentId, $classId);
+    }
+
+    public static function getExcludedDates($startDate, $endDate, ?int $departmentId = null, ?int $classId = null): array
+    {
+        return static::getDatesByFilter($startDate, $endDate, null, $departmentId, $classId);
+    }
+
+    protected static function getDatesByFilter($startDate, $endDate, ?bool $onlyHoliday = null, ?int $departmentId = null, ?int $classId = null): array
     {
         $startDate = is_string($startDate) ? \Carbon\Carbon::parse($startDate) : $startDate;
         $endDate = is_string($endDate) ? \Carbon\Carbon::parse($endDate) : $endDate;
 
-        $holidays = static::where('is_holiday', true)
-            ->where(function($query) use ($startDate, $endDate) {
-                // Holiday overlaps with our date range
-                $query->where(function($q) use ($startDate, $endDate) {
-                    $q->whereBetween('start_date', [$startDate, $endDate])
-                      ->orWhereBetween('end_date', [$startDate, $endDate])
-                      ->orWhere(function($subQ) use ($startDate, $endDate) {
-                          $subQ->where('start_date', '<=', $startDate)
-                               ->where('end_date', '>=', $endDate);
-                      });
+        $query = static::where(function ($query) use ($startDate, $endDate) {
+            $query->whereBetween('start_date', [$startDate, $endDate])
+                ->orWhereBetween('end_date', [$startDate, $endDate])
+                ->orWhere(function ($subQuery) use ($startDate, $endDate) {
+                    $subQuery->where('start_date', '<=', $startDate)
+                        ->where('end_date', '>=', $endDate);
                 });
-            })
-            ->get();
+        });
 
-        $holidayDates = [];
+        if (!is_null($onlyHoliday)) {
+            $query->where('is_holiday', $onlyHoliday);
+        }
 
-        foreach ($holidays as $holiday) {
-            $current = \Carbon\Carbon::parse($holiday->start_date);
-            $end = \Carbon\Carbon::parse($holiday->end_date);
+        $events = $query->get()->filter(function ($event) use ($departmentId, $classId) {
+            $affectedDepartments = collect($event->affected_departments ?? [])->map(fn ($id) => (int) $id)->filter()->values();
+            $affectedClasses = collect($event->affected_classes ?? [])->map(fn ($id) => (int) $id)->filter()->values();
 
-            // Make sure we only include dates within our range
-            if ($current->lt($startDate)) {
-                $current = $startDate->copy();
+            if ($affectedDepartments->isEmpty() && $affectedClasses->isEmpty()) {
+                return true;
             }
+
+            if (!is_null($classId) && $affectedClasses->contains((int) $classId)) {
+                return true;
+            }
+
+            if (!is_null($departmentId) && $affectedDepartments->contains((int) $departmentId)) {
+                return true;
+            }
+
+            return false;
+        });
+
+        $dates = [];
+
+        foreach ($events as $event) {
+            $current = \Carbon\Carbon::parse($event->start_date)->startOfDay();
+            $end = \Carbon\Carbon::parse($event->end_date)->startOfDay();
+
+            if ($current->lt($startDate)) {
+                $current = $startDate->copy()->startOfDay();
+            }
+
             if ($end->gt($endDate)) {
-                $end = $endDate->copy();
+                $end = $endDate->copy()->startOfDay();
             }
 
             while ($current->lte($end)) {
-                $holidayDates[] = $current->format('Y-m-d');
+                $dates[] = $current->format('Y-m-d');
                 $current->addDay();
             }
         }
 
-        return array_unique($holidayDates);
+        return array_values(array_unique($dates));
     }
 
-    /**
-     * Get duration in days
-     */
     public function getDurationDaysAttribute(): int
     {
         return $this->start_date->diffInDays($this->end_date) + 1;
     }
 
-    /**
-     * Scope: only holidays
-     */
     public function scopeHolidays($query)
     {
         return $query->where('is_holiday', true);
     }
 
-    /**
-     * Scope: filter by type
-     */
     public function scopeByType($query, string $type)
     {
         return $query->where('type', $type);
     }
 
-    /**
-     * Scope: upcoming events
-     */
     public function scopeUpcoming($query)
     {
         return $query->where('start_date', '>=', now()->toDateString())
             ->orderBy('start_date');
     }
 
-    /**
-     * Check if this event has custom attendance times
-     */
     public function hasCustomTimes(): bool
     {
         return $this->use_custom_times &&
                ($this->custom_check_in_start || $this->custom_check_out_start);
     }
 
-    /**
-     * Get effective check-in start time (custom or default)
-     */
     public function getEffectiveCheckInStart(): string
     {
         if ($this->use_custom_times && $this->custom_check_in_start) {
@@ -169,9 +167,6 @@ class AcademicCalendar extends Model
         return AttendanceSetting::getValue('check_in_start', '06:00:00');
     }
 
-    /**
-     * Get effective check-in end time
-     */
     public function getEffectiveCheckInEnd(): string
     {
         if ($this->use_custom_times && $this->custom_check_in_end) {
@@ -180,9 +175,6 @@ class AcademicCalendar extends Model
         return AttendanceSetting::getValue('check_in_end', '08:30:00');
     }
 
-    /**
-     * Get effective check-in normal time (untuk hitung terlambat)
-     */
     public function getEffectiveCheckInNormal(): string
     {
         if ($this->use_custom_times && $this->custom_check_in_normal) {
@@ -191,9 +183,6 @@ class AcademicCalendar extends Model
         return AttendanceSetting::getValue('check_in_normal', '07:30:00');
     }
 
-    /**
-     * Get effective check-out start time
-     */
     public function getEffectiveCheckOutStart(): string
     {
         if ($this->use_custom_times && $this->custom_check_out_start) {
@@ -202,9 +191,6 @@ class AcademicCalendar extends Model
         return AttendanceSetting::getValue('check_out_start', '15:00:00');
     }
 
-    /**
-     * Get effective check-out end time
-     */
     public function getEffectiveCheckOutEnd(): string
     {
         if ($this->use_custom_times && $this->custom_check_out_end) {
@@ -213,9 +199,6 @@ class AcademicCalendar extends Model
         return AttendanceSetting::getValue('check_out_end', '18:00:00');
     }
 
-    /**
-     * Get effective check-out normal time (untuk hitung pulang cepat)
-     */
     public function getEffectiveCheckOutNormal(): string
     {
         if ($this->use_custom_times && $this->custom_check_out_normal) {
@@ -224,12 +207,8 @@ class AcademicCalendar extends Model
         return AttendanceSetting::getValue('check_out_normal', '15:30:00');
     }
 
-    /**
-     * Check if event affects specific student (by department or class)
-     */
     public function affectsStudent($studentId): bool
     {
-        // If no filters, affects all students
         if (!$this->affected_departments && !$this->affected_classes) {
             return true;
         }
@@ -239,7 +218,6 @@ class AcademicCalendar extends Model
             return false;
         }
 
-        // Check department filter
         if ($this->affected_departments && count($this->affected_departments) > 0) {
             $departmentId = $student->class->department_id ?? null;
             if (!in_array($departmentId, $this->affected_departments)) {
@@ -247,7 +225,6 @@ class AcademicCalendar extends Model
             }
         }
 
-        // Check class filter
         if ($this->affected_classes && count($this->affected_classes) > 0) {
             if (!in_array($student->class_id, $this->affected_classes)) {
                 return false;
@@ -257,9 +234,6 @@ class AcademicCalendar extends Model
         return true;
     }
 
-    /**
-     * Get type label in Indonesian
-     */
     public function getTypeLabelAttribute(): string
     {
         return match($this->type) {
@@ -271,3 +245,4 @@ class AcademicCalendar extends Model
         };
     }
 }
+

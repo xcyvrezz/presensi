@@ -85,7 +85,7 @@
                 <p class="mt-3 text-blue-100">{{ $overallStats['presentDays'] }} dari {{ $overallStats['totalWorkingDays'] }} hari efektif</p>
                 @if($overallStats['startDate'] && $overallStats['endDate'])
                     <p class="mt-1 text-xs text-blue-200 opacity-75">
-                        Periode: {{ \Carbon\Carbon::parse($overallStats['startDate'])->format('d M Y') }} - {{ \Carbon\Carbon::parse($overallStats['endDate'])->format('d M Y') }}
+                        Periode: {{ \Carbon\Carbon::parse($overallStats['startDate'])->format('d M Y') }} - {{ \Carbon\Carbon::parse($overallStats['endDate'])->format('d M Y') }} | Weekend + kalender libur dikecualikan
                     </p>
                 @endif
             </div>
@@ -423,3 +423,4 @@
         </div>
     </div>
 </div>
+

@@ -185,7 +185,7 @@
             @forelse($attendances as $index => $attendance)
                 <tr>
                     <td style="text-align: center;">{{ $index + 1 }}</td>
-                    <td style="text-align: center;">{{ $attendance->check_in_time ? $attendance->check_in_time->format('d/m/Y') : '-' }}</td>
+                    <td style="text-align: center;">{{ $attendance->date ? $attendance->date->format('d/m/Y') : '-' }}</td>
                     <td>{{ $attendance->student->nis ?? '-' }}</td>
                     <td>{{ $attendance->student->full_name ?? '-' }}</td>
                     <td style="text-align: center;">{{ $attendance->check_in_time ? $attendance->check_in_time->format('H:i') : '-' }}</td>
@@ -198,7 +198,7 @@
                     <td style="text-align: center;">{{ $attendance->late_minutes ?? 0 }} menit</td>
                     <td style="text-align: center;">{{ $attendance->early_leave_minutes ?? 0 }} menit</td>
                     <td style="text-align: center;">{{ $attendance->percentage }}%</td>
-                    <td style="text-align: center;">{{ strtoupper($attendance->method) }}</td>
+                    <td style="text-align: center;">{{ strtoupper($attendance->method ?? '-') }}</td>
                 </tr>
             @empty
                 <tr>

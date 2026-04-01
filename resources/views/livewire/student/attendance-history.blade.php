@@ -273,8 +273,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-md
-                                    {{ $attendance->method === 'nfc' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-50 text-slate-700 border border-slate-200' }}">
-                                    {{ $attendance->method === 'nfc' ? 'NFC' : 'Manual' }}
+                                    {{ $attendance->method === 'nfc' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ($attendance->method === 'rfid' ? 'bg-slate-50 text-slate-700 border border-slate-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200') }}">
+                                    {{ $attendance->method === 'nfc' ? 'NFC' : ($attendance->method === 'rfid' ? 'RFID' : ucfirst($attendance->method ?? '-')) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4">

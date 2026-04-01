@@ -140,7 +140,6 @@ class GenerateAlpha extends Component
         $studentsWithoutCheckout = Attendance::whereDate('date', $date)
             ->whereNotNull('check_in_time')
             ->whereNull('check_out_time')
-            ->where('status', '!=', 'tidak_checkout')
             ->count();
 
         $this->previewData = [
@@ -207,22 +206,19 @@ class GenerateAlpha extends Component
                 $generated++;
             }
 
-            // Update status for students who checked in but didn't check out
+            // Tambahkan catatan untuk siswa yang check-in tapi belum check-out
             $updated = Attendance::whereDate('date', $date)
                 ->whereNotNull('check_in_time')
                 ->whereNull('check_out_time')
-                ->where('status', '!=', 'tidak_checkout')
                 ->update([
-                    'status' => 'tidak_checkout',
-                    'percentage' => 50,
-                    'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Status updated to tidak_checkout by system. Updated by " . auth()->user()->name . " at " . now()->format('d/m/Y H:i:s') . "')")
+                    'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Lupa check-out terdeteksi sistem. Diperbarui oleh " . auth()->user()->name . " pada " . now()->format('d/m/Y H:i:s') . "')")
                 ]);
 
             // Log the action
             Log::info('Alpha generation completed', [
                 'date' => $date->format('Y-m-d'),
                 'generated_count' => $generated,
-                'updated_tidak_checkout' => $updated,
+                'updated_missing_checkout_notes' => $updated,
                 'user' => auth()->user()->name,
                 'user_id' => auth()->id(),
             ]);
@@ -231,7 +227,7 @@ class GenerateAlpha extends Component
 
             $message = "Berhasil generate {$generated} record alpha untuk tanggal {$date->format('d/m/Y')}.";
             if ($updated > 0) {
-                $message .= " {$updated} siswa yang check-in tapi tidak check-out telah diupdate statusnya menjadi 'tidak checkout'.";
+                $message .= " {$updated} siswa yang check-in tapi belum check-out telah diberi catatan 'lupa check-out'.";
             }
             session()->flash('success', $message);
 
@@ -353,15 +349,12 @@ class GenerateAlpha extends Component
                         $totalGenerated++;
                     }
 
-                    // Update status for students who checked in but didn't check out
+                    // Tambahkan catatan untuk siswa yang check-in tapi belum check-out
                     $updated = Attendance::whereDate('date', $current)
                         ->whereNotNull('check_in_time')
                         ->whereNull('check_out_time')
-                        ->where('status', '!=', 'tidak_checkout')
                         ->update([
-                            'status' => 'tidak_checkout',
-                            'percentage' => 50,
-                            'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Status updated to tidak_checkout by system. Updated by " . auth()->user()->name . " at " . now()->format('d/m/Y H:i:s') . "')")
+                            'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Lupa check-out terdeteksi sistem. Diperbarui oleh " . auth()->user()->name . " pada " . now()->format('d/m/Y H:i:s') . "')")
                         ]);
 
                     $totalUpdated += $updated;
@@ -377,7 +370,7 @@ class GenerateAlpha extends Component
                 'end_date' => $endDate->format('Y-m-d'),
                 'days_processed' => $daysProcessed,
                 'generated_count' => $totalGenerated,
-                'updated_tidak_checkout' => $totalUpdated,
+                'updated_missing_checkout_notes' => $totalUpdated,
                 'user' => auth()->user()->name,
                 'user_id' => auth()->id(),
             ]);
@@ -386,7 +379,7 @@ class GenerateAlpha extends Component
 
             $message = "Berhasil generate {$totalGenerated} record alpha untuk {$daysProcessed} hari kerja.";
             if ($totalUpdated > 0) {
-                $message .= " {$totalUpdated} siswa yang check-in tapi tidak check-out telah diupdate statusnya menjadi 'tidak checkout'.";
+                $message .= " {$totalUpdated} siswa yang check-in tapi belum check-out telah diberi catatan 'lupa check-out'.";
             }
             session()->flash('success', $message);
 

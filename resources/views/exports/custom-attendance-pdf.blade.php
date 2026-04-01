@@ -283,7 +283,7 @@
             </tr>
             <tr>
                 <td>Hari Efektif</td>
-                <td>: {{ $effectiveSchoolDays }} hari (exclude Sabtu, Minggu, dan hari libur)</td>
+                <td>: {{ $effectiveSchoolDays }} hari (exclude Sabtu, Minggu, dan kalender libur)</td>
             </tr>
             <tr>
                 <td>Tanggal Export</td>
@@ -295,8 +295,7 @@
     <div class="highlight-box">
         <p>
             <strong>Catatan Penting:</strong><br>
-            Hari efektif adalah hari sekolah aktif (Senin-Jumat) dikurangi hari libur dari kalender akademik.
-            Persentase kehadiran dihitung berdasarkan: <strong>(Total Hadir / Hari Efektif) × 100%</strong>
+            Hari efektif adalah hari sekolah aktif (Senin-Jumat) dikurangi event kalender yang ditandai sebagai libur (`is_holiday = true`). Event non-libur seperti UAS, ujian, atau kegiatan sekolah tetap dihitung. Persentase kehadiran dihitung berdasarkan: <strong>(Total Hadir / Hari Efektif) x 100%</strong>
         </p>
     </div>
 
@@ -370,7 +369,7 @@
     <div class="legend" style="margin-top: 10px;">
         <div class="legend-title">Kategori Persentase Kehadiran</div>
         <div class="legend-items">
-            <div class="legend-item"><span class="percent-excellent">≥ 90%</span> = Sangat Baik</div>
+            <div class="legend-item"><span class="percent-excellent">&ge; 90%</span> = Sangat Baik</div>
             <div class="legend-item"><span class="percent-good">75% - 89%</span> = Baik</div>
             <div class="legend-item"><span class="percent-poor">< 75%</span> = Perlu Perhatian</div>
         </div>
@@ -379,8 +378,11 @@
     <div class="footer">
         <p>Dokumen ini dibuat secara otomatis oleh Sistem Absensi MIFARE</p>
         <p style="margin-top: 5px; font-size: 7.5pt; color: #64748b;">
-            © {{ date('Y') }} Sistem Absensi MIFARE - Semua data bersifat rahasia dan hanya untuk keperluan internal sekolah
+            &copy; {{ date('Y') }} Sistem Absensi MIFARE - Semua data bersifat rahasia dan hanya untuk keperluan internal sekolah
         </p>
     </div>
 </body>
 </html>
+
+
+

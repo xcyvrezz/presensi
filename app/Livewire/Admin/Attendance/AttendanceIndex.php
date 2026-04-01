@@ -88,7 +88,7 @@ class AttendanceIndex extends Component
         return [
             'editCheckInTime' => 'required|date_format:H:i',
             'editCheckOutTime' => 'nullable|date_format:H:i|after:editCheckInTime',
-            'editStatus' => 'required|in:hadir,terlambat,izin,sakit,dispensasi,alpha,bolos,pulang_cepat,lupa_check_out,tidak_checkout',
+            'editStatus' => 'required|in:hadir,terlambat,izin,sakit,dispensasi,alpha,bolos,pulang_cepat',
             'editNotes' => 'nullable|string|max:500',
         ];
     }
@@ -212,7 +212,11 @@ class AttendanceIndex extends Component
         $this->totalDispensasi = $attendances->where('status', 'dispensasi')->count();
         $this->totalBolos = $attendances->where('status', 'bolos')->count();
         $this->totalPulangCepat = $attendances->where('status', 'pulang_cepat')->count();
-        $this->totalTidakCheckout = $attendances->where('status', 'tidak_checkout')->count();
+        $this->totalTidakCheckout = $attendances->filter(function($attendance) {
+            return $attendance->check_in_time
+                && !$attendance->check_out_time
+                && in_array($attendance->status, ['hadir', 'terlambat'], true);
+        })->count();
 
         // Calculate lupa checkout (has check-in but no check-out)
         $this->totalLupaCheckout = $attendances->filter(function($attendance) {
@@ -544,7 +548,11 @@ class AttendanceIndex extends Component
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
-                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
+                'tidak_checkout' => $attendances->filter(function($attendance) {
+                    return $attendance->check_in_time
+                        && !$attendance->check_out_time
+                        && in_array($attendance->status, ['hadir', 'terlambat'], true);
+                })->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -675,7 +683,11 @@ class AttendanceIndex extends Component
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
-                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
+                'tidak_checkout' => $attendances->filter(function($attendance) {
+                    return $attendance->check_in_time
+                        && !$attendance->check_out_time
+                        && in_array($attendance->status, ['hadir', 'terlambat'], true);
+                })->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -833,7 +845,11 @@ class AttendanceIndex extends Component
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
-                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
+                'tidak_checkout' => $attendances->filter(function($attendance) {
+                    return $attendance->check_in_time
+                        && !$attendance->check_out_time
+                        && in_array($attendance->status, ['hadir', 'terlambat'], true);
+                })->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -1021,13 +1037,7 @@ class AttendanceIndex extends Component
             }
 
             // Calculate percentage
-            $percentageMap = [
-                'hadir' => 100, 'terlambat' => 75, 'izin' => 50,
-                'sakit' => 50, 'dispensasi' => 75, 'pulang_cepat' => 75,
-                'alpha' => 0, 'bolos' => 0, 'lupa_check_out' => 75,
-                'tidak_checkout' => 50,
-            ];
-            $percentage = $percentageMap[$this->editStatus] ?? 0;
+            $percentage = Attendance::percentageForStatus($this->editStatus);
 
             // Update attendance
             $attendance->update([

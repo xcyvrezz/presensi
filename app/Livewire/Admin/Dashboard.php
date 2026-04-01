@@ -2,38 +2,42 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\User;
-use App\Models\Student;
+use App\Models\AbsenceRequest;
+use App\Models\AcademicCalendar;
+use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\Department;
-use App\Models\Attendance;
-use App\Models\AbsenceRequest;
-use App\Models\Semester;
-use App\Models\AcademicCalendar;
-use Livewire\Component;
+use App\Models\Student;
+use App\Models\User;
+use App\Services\AttendanceSummaryService;
+use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 #[Layout('layouts.admin')]
 #[Title('Admin Dashboard')]
 class Dashboard extends Component
 {
-    public function render()
+    public function render(AttendanceSummaryService $summaryService)
     {
-        // Check if today is a holiday
         $isHoliday = AcademicCalendar::isHoliday(Carbon::today());
         $holidayInfo = null;
 
         if ($isHoliday) {
             $today = Carbon::today()->format('Y-m-d');
-
             $holidayInfo = AcademicCalendar::where('is_holiday', true)
                 ->whereDate('start_date', '<=', $today)
                 ->whereDate('end_date', '>=', $today)
                 ->first();
         }
+
+        $period = $summaryService->getActivePeriod();
+        $periodSummary = $summaryService->getAggregateSummary(
+            Student::active(),
+            $period['start_date'],
+            $period['end_date']
+        );
 
         $systemStats = $this->getSystemStatistics();
         $todayStats = $this->getTodayStatistics();
@@ -44,20 +48,24 @@ class Dashboard extends Component
         $pendingRequests = $this->getPendingRequests();
         $weeklyTrend = $this->getWeeklyAttendanceTrend();
         $systemHealth = $this->getSystemHealth();
+        $topClasses = $this->getTopClassesByPeriod($summaryService, $period);
 
-        return view('livewire.admin.dashboard', [
-            'isHoliday' => $isHoliday,
-            'holidayInfo' => $holidayInfo,
-            'systemStats' => $systemStats,
-            'todayStats' => $todayStats,
-            'userStats' => $userStats,
-            'recentUsers' => $recentUsers,
-            'recentStudents' => $recentStudents,
-            'recentAttendances' => $recentAttendances,
-            'pendingRequests' => $pendingRequests,
-            'weeklyTrend' => $weeklyTrend,
-            'systemHealth' => $systemHealth,
-        ]);
+        return view('livewire.admin.dashboard', compact(
+            'isHoliday',
+            'holidayInfo',
+            'systemStats',
+            'todayStats',
+            'userStats',
+            'recentUsers',
+            'recentStudents',
+            'recentAttendances',
+            'pendingRequests',
+            'weeklyTrend',
+            'systemHealth',
+            'period',
+            'periodSummary',
+            'topClasses'
+        ));
     }
 
     private function getSystemStatistics()
@@ -78,40 +86,22 @@ class Dashboard extends Component
     {
         $today = Carbon::today();
         $activeStudents = Student::where('is_active', true)->count();
-
-        // Ambil semua attendance hari ini
         $todayAttendances = Attendance::whereDate('date', $today)->get();
-
-        // KONSISTEN: Present = hanya hadir + terlambat (yang benar-benar datang ke sekolah)
         $totalPresent = $todayAttendances->whereIn('status', ['hadir', 'terlambat'])->count();
-
-        // Hitung per status
-        $totalHadir = $todayAttendances->where('status', 'hadir')->count();
-        $totalTerlambat = $todayAttendances->where('status', 'terlambat')->count();
-        $totalIzin = $todayAttendances->where('status', 'izin')->count();
-        $totalSakit = $todayAttendances->where('status', 'sakit')->count();
-        $totalDispensasi = $todayAttendances->where('status', 'dispensasi')->count();
-        $totalBolos = $todayAttendances->where('status', 'bolos')->count();
-
-        // LOGIC BARU: Alpha = record yang sudah di-generate dengan status 'alpha'
         $totalAlpha = $todayAttendances->where('status', 'alpha')->count();
-
-        // Belum absen = siswa yang belum punya record sama sekali
-        $totalBelumAbsen = $activeStudents - $todayAttendances->count();
+        $totalBelumAbsen = max($activeStudents - $todayAttendances->count(), 0);
 
         return [
             'total_present' => $totalPresent,
-            'total_hadir' => $totalHadir,
-            'total_terlambat' => $totalTerlambat,
-            'total_izin' => $totalIzin,
-            'total_sakit' => $totalSakit,
-            'total_alpha' => $totalAlpha, // Record dengan status alpha
-            'total_bolos' => $totalBolos,
-            'total_dispensasi' => $totalDispensasi,
-            'total_absent' => $totalBelumAbsen, // Belum absen sama sekali
-            'attendance_percentage' => $activeStudents > 0
-                ? round(($totalPresent / $activeStudents) * 100, 1)
-                : 0,
+            'total_hadir' => $todayAttendances->where('status', 'hadir')->count(),
+            'total_terlambat' => $todayAttendances->where('status', 'terlambat')->count(),
+            'total_izin' => $todayAttendances->where('status', 'izin')->count(),
+            'total_sakit' => $todayAttendances->where('status', 'sakit')->count(),
+            'total_alpha' => $totalAlpha,
+            'total_bolos' => $todayAttendances->where('status', 'bolos')->count(),
+            'total_dispensasi' => $todayAttendances->where('status', 'dispensasi')->count(),
+            'total_absent' => $totalBelumAbsen,
+            'attendance_percentage' => $activeStudents > 0 ? round(($totalPresent / $activeStudents) * 100, 1) : 0,
         ];
     }
 
@@ -121,10 +111,10 @@ class Dashboard extends Component
 
         return [
             'total' => $users->count(),
-            'admins' => $users->filter(fn($u) => $u->role && $u->role->name === 'admin')->count(),
-            'kepala_sekolah' => $users->filter(fn($u) => $u->role && $u->role->name === 'kepala_sekolah')->count(),
-            'wali_kelas' => $users->filter(fn($u) => $u->role && $u->role->name === 'wali_kelas')->count(),
-            'siswa' => $users->filter(fn($u) => $u->role && $u->role->name === 'siswa')->count(),
+            'admins' => $users->filter(fn ($u) => $u->role && $u->role->name === 'admin')->count(),
+            'kepala_sekolah' => $users->filter(fn ($u) => $u->role && $u->role->name === 'kepala_sekolah')->count(),
+            'wali_kelas' => $users->filter(fn ($u) => $u->role && $u->role->name === 'wali_kelas')->count(),
+            'siswa' => $users->filter(fn ($u) => $u->role && $u->role->name === 'siswa')->count(),
             'active' => $users->where('is_active', true)->count(),
             'inactive' => $users->where('is_active', false)->count(),
         ];
@@ -132,26 +122,17 @@ class Dashboard extends Component
 
     private function getRecentUsers()
     {
-        return User::with('role')
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+        return User::with('role')->orderBy('created_at', 'desc')->limit(5)->get();
     }
 
     private function getRecentStudents()
     {
-        return Student::with(['class.department', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+        return Student::with(['class.department', 'user'])->orderBy('created_at', 'desc')->limit(5)->get();
     }
 
     private function getRecentAttendances()
     {
-        return Attendance::with(['student.class'])
-            ->orderBy('check_in_time', 'desc')
-            ->limit(10)
-            ->get();
+        return Attendance::with(['student.class'])->orderBy('check_in_time', 'desc')->limit(10)->get();
     }
 
     private function getPendingRequests()
@@ -172,14 +153,9 @@ class Dashboard extends Component
         for ($i = 0; $i < 7; $i++) {
             $date = $startOfWeek->copy()->addDays($i);
             $attendances = Attendance::whereDate('date', $date)->get();
-
-            // Present = hadir + terlambat
             $present = $attendances->whereIn('status', ['hadir', 'terlambat'])->count();
-
-            // Alpha = siswa yang tidak punya record
-            $absent = $activeStudents - $attendances->count();
-
-            $percentage = $activeStudents > 0 ? round(($present / $activeStudents) * 100, 1) : 0;
+            $alpha = $attendances->where('status', 'alpha')->count();
+            $notRecorded = max($activeStudents - $attendances->count(), 0);
 
             $weeklyData[] = [
                 'day' => $date->format('D'),
@@ -189,10 +165,11 @@ class Dashboard extends Component
                 'terlambat' => $attendances->where('status', 'terlambat')->count(),
                 'izin' => $attendances->where('status', 'izin')->count(),
                 'sakit' => $attendances->where('status', 'sakit')->count(),
-                'alpha' => $absent,
+                'alpha' => $alpha,
+                'belum_absen' => $notRecorded,
                 'dispensasi' => $attendances->where('status', 'dispensasi')->count(),
                 'total_present' => $present,
-                'percentage' => $percentage,
+                'percentage' => $activeStudents > 0 ? round(($present / $activeStudents) * 100, 1) : 0,
                 'is_today' => $date->isToday(),
             ];
         }
@@ -202,15 +179,11 @@ class Dashboard extends Component
 
     private function getSystemHealth()
     {
-        // Calculate various health metrics
         $totalStudents = Student::where('is_active', true)->count();
         $studentsWithNFC = Student::where('is_active', true)->where('nfc_enabled', true)->count();
         $studentsWithUser = Student::whereNotNull('user_id')->count();
-
         $classesWithWaliKelas = Classes::whereNotNull('wali_kelas_id')->count();
         $totalClasses = Classes::count();
-
-        // Calculate data completeness
         $studentsComplete = Student::where('is_active', true)
             ->whereNotNull('nis')
             ->whereNotNull('nisn')
@@ -222,8 +195,6 @@ class Dashboard extends Component
         $userAccountPercentage = $totalStudents > 0 ? round(($studentsWithUser / $totalStudents) * 100, 1) : 0;
         $waliKelasPercentage = $totalClasses > 0 ? round(($classesWithWaliKelas / $totalClasses) * 100, 1) : 0;
         $dataCompletenessPercentage = $totalStudents > 0 ? round(($studentsComplete / $totalStudents) * 100, 1) : 0;
-
-        // Overall system health (average of all metrics)
         $overallHealth = round(($nfcPercentage + $userAccountPercentage + $waliKelasPercentage + $dataCompletenessPercentage) / 4, 1);
 
         return [
@@ -234,5 +205,41 @@ class Dashboard extends Component
             'data_completeness' => $dataCompletenessPercentage,
             'status' => $overallHealth >= 90 ? 'excellent' : ($overallHealth >= 75 ? 'good' : ($overallHealth >= 50 ? 'fair' : 'poor')),
         ];
+    }
+
+    private function getTopClassesByPeriod(AttendanceSummaryService $summaryService, array $period)
+    {
+        return Classes::with('department')
+            ->active()
+            ->get()
+            ->map(function ($class) use ($summaryService, $period) {
+                $studentQuery = $class->students()->where('is_active', true);
+                $studentCount = (clone $studentQuery)->count();
+
+                if ($studentCount === 0) {
+                    return null;
+                }
+
+                $summary = $summaryService->getAggregateSummary(
+                    $studentQuery,
+                    $period['start_date'],
+                    $period['end_date'],
+                    $class->department_id,
+                    $class->id
+                );
+
+                return [
+                    'class_name' => $class->name,
+                    'department' => $class->department->name ?? '-',
+                    'total_students' => $studentCount,
+                    'present' => $summary['present_count'],
+                    'expected_records' => $summary['expected_records'],
+                    'percentage' => $summary['attendance_rate'],
+                ];
+            })
+            ->filter()
+            ->sortByDesc('percentage')
+            ->take(5)
+            ->values();
     }
 }

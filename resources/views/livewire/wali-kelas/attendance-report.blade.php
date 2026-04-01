@@ -433,7 +433,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                                     @if($attendance->check_in_method === 'nfc' || $attendance->check_in_method === 'nfc_mobile')
                                         <span class="text-blue-600">📱 NFC</span>
-                                    @elseif($attendance->check_in_method === 'rfid')
+                                    @elseif($attendance->check_in_method === 'rfid' || $attendance->check_in_method === 'rfid_physical')
                                         <span class="text-blue-600">💳 RFID</span>
                                     @elseif($attendance->check_in_method === 'manual')
                                         <span class="text-slate-600">✍️ Manual</span>

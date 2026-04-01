@@ -180,39 +180,4 @@ Route::middleware('auth')->group(function () {
                 abort(403, 'Role tidak dikenali: ' . $user->role->name);
         }
     })->middleware('auth')->name('dashboard');
-
-    // TEMPORARY: Run migration route (REMOVE AFTER USE)
-    Route::get('/run-migration-temp', function () {
-        try {
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-            $output = \Illuminate\Support\Facades\Artisan::output();
-            return '<pre>' . $output . '</pre><br><strong style="color: green;">Migration completed successfully!</strong><br><br><a href="/siswa/absence/request">Go to Absence Request Page</a><br><br><strong style="color: red;">IMPORTANT: Please remove this route from routes/web.php after use!</strong>';
-        } catch (\Exception $e) {
-            return '<strong style="color: red;">Error:</strong> ' . $e->getMessage();
-        }
-    });
-
-    // TEMPORARY: Create active semester (REMOVE AFTER USE)
-    Route::get('/create-semester-temp', function () {
-        try {
-            $semester = \App\Models\Semester::create([
-                'name' => 'Semester 1 2025/2026',
-                'academic_year' => '2025/2026',
-                'start_date' => '2025-07-01',
-                'end_date' => '2025-12-31',
-                'semester' => 1,
-                'is_active' => true,
-            ]);
-            return '<strong style="color: green;">Semester created successfully!</strong><br><br>' .
-                   'ID: ' . $semester->id . '<br>' .
-                   'Name: ' . $semester->name . '<br>' .
-                   'Academic Year: ' . $semester->academic_year . '<br>' .
-                   'Period: ' . $semester->start_date . ' - ' . $semester->end_date . '<br><br>' .
-                   '<a href="/wali-kelas/absence-requests">Go to Absence Requests</a><br><br>' .
-                   '<strong style="color: red;">IMPORTANT: Please remove this route from routes/web.php after use!</strong>';
-        } catch (\Exception $e) {
-            return '<strong style="color: red;">Error:</strong> ' . $e->getMessage();
-        }
-    });
 });
-

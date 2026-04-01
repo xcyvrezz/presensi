@@ -214,6 +214,49 @@
         </div>
     @endif
 
+    <div class="mb-6">
+        <h2 class="text-lg font-bold text-slate-900 mb-4">Ringkasan Kehadiran Periode Aktif</h2>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="xl:col-span-2 bg-white border border-slate-200 rounded-xl p-6">
+                <div class="flex items-start justify-between gap-4 mb-5">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-500 uppercase tracking-wide">{{ $period['label'] }}</p>
+                        <h3 class="text-3xl font-bold text-blue-600 mt-1">{{ $periodSummary['attendance_rate'] }}%</h3>
+                        <p class="text-sm text-slate-500 mt-1">{{ $periodSummary['present_count'] }} kehadiran efektif dari {{ $periodSummary['expected_records'] }} ekspektasi catatan</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-slate-500">Hari efektif</p>
+                        <p class="text-3xl font-bold text-slate-900">{{ $periodSummary['effective_days'] }}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="rounded-xl bg-blue-50 border border-blue-100 p-4"><p class="text-xs text-slate-500">Siswa aktif</p><p class="text-2xl font-bold text-slate-900">{{ $periodSummary['student_count'] }}</p></div>
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs text-slate-500">Alpha + Bolos</p><p class="text-2xl font-bold text-slate-900">{{ $periodSummary['alpha_count'] + $periodSummary['bolos_count'] }}</p></div>
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs text-slate-500">Izin + Sakit</p><p class="text-2xl font-bold text-slate-900">{{ $periodSummary['permit_count'] + $periodSummary['sick_count'] }}</p></div>
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs text-slate-500">Belum tercatat</p><p class="text-2xl font-bold text-slate-900">{{ $periodSummary['missing_records'] }}</p></div>
+                </div>
+                <p class="text-xs text-slate-500 mt-4">Persentase periode aktif dihitung sejak awal semester aktif sampai hari ini, hanya Senin-Jumat, dan mengecualikan hari libur kalender.</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-xl p-6">
+                <h3 class="text-lg font-bold text-slate-900 mb-5">Kelas Terbaik Periode Aktif</h3>
+                <div class="space-y-3">
+                    @foreach($topClasses as $index => $class)
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                            <div class="w-9 h-9 rounded-full {{ $index === 0 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700' }} flex items-center justify-center font-bold text-sm">{{ $index + 1 }}</div>
+                            <div class="flex-1">
+                                <p class="text-sm font-bold text-slate-900">{{ $class['class_name'] }}</p>
+                                <p class="text-xs text-slate-500">{{ $class['department'] }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-bold text-blue-600">{{ $class['percentage'] }}%</p>
+                                <p class="text-xs text-slate-500">{{ $class['present'] }}/{{ $class['expected_records'] }}</p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Quick Actions & System Info -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
         <!-- Quick Actions Panel -->
@@ -556,3 +599,5 @@
         </div>
     </div>
 </div>
+
+

@@ -131,7 +131,11 @@ class AttendanceReport extends Component
         $this->totalDispensasi = $attendances->where('status', 'dispensasi')->count();
         $this->totalBolos = $attendances->where('status', 'bolos')->count();
         $this->totalPulangCepat = $attendances->where('status', 'pulang_cepat')->count();
-        $this->totalTidakCheckout = $attendances->where('status', 'tidak_checkout')->count();
+        $this->totalTidakCheckout = $attendances->filter(function($attendance) {
+            return $attendance->check_in_time
+                && !$attendance->check_out_time
+                && in_array($attendance->status, ['hadir', 'terlambat'], true);
+        })->count();
 
         // Calculate lupa checkout (has check-in but no check-out)
         $this->totalLupaCheckout = $attendances->filter(function($attendance) {
@@ -273,7 +277,11 @@ class AttendanceReport extends Component
                 'sakit' => $attendances->where('status', 'sakit')->count(),
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
-                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
+                'tidak_checkout' => $attendances->filter(function($attendance) {
+                    return $attendance->check_in_time
+                        && !$attendance->check_out_time
+                        && in_array($attendance->status, ['hadir', 'terlambat'], true);
+                })->count(),
             ];
         }
 
@@ -356,7 +364,9 @@ class AttendanceReport extends Component
         // Get holiday dates in this semester
         $holidayDates = \App\Models\AcademicCalendar::getHolidayDates(
             $semester->start_date,
-            $semester->end_date
+            $semester->end_date,
+            $this->class->department_id ?? null,
+            $this->class->id
         );
 
         // Calculate effective school days
@@ -387,7 +397,11 @@ class AttendanceReport extends Component
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
-                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
+                'tidak_checkout' => $attendances->filter(function($attendance) {
+                    return $attendance->check_in_time
+                        && !$attendance->check_out_time
+                        && in_array($attendance->status, ['hadir', 'terlambat'], true);
+                })->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -493,7 +507,9 @@ class AttendanceReport extends Component
         // Get holiday dates in this period
         $holidayDates = \App\Models\AcademicCalendar::getHolidayDates(
             $startDate,
-            $endDate
+            $endDate,
+            $this->class->department_id ?? null,
+            $this->class->id
         );
 
         // Calculate effective school days
@@ -523,7 +539,11 @@ class AttendanceReport extends Component
                 'dispensasi' => $dispensasiCount,
                 'bolos' => $attendances->where('status', 'bolos')->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
-                'tidak_checkout' => $attendances->where('status', 'tidak_checkout')->count(),
+                'tidak_checkout' => $attendances->filter(function($attendance) {
+                    return $attendance->check_in_time
+                        && !$attendance->check_out_time
+                        && in_array($attendance->status, ['hadir', 'terlambat'], true);
+                })->count(),
                 'total_kehadiran' => $totalKehadiran,
                 'percentage' => $percentage,
             ];
@@ -615,3 +635,5 @@ class AttendanceReport extends Component
         ]);
     }
 }
+
+

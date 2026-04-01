@@ -59,8 +59,8 @@ class AttendanceService
 
                 // Check if card exists but inactive
                 if (isset($data['card_uid'])) {
-                    $inactiveStudent = Student::where('card_uid', $data['card_uid'])->first();
-                    if ($inactiveStudent) {
+                    $inactiveStudent = $this->findStudentByCardUid($data['card_uid'], false);
+                    if ($inactiveStudent && !$inactiveStudent->is_active) {
                         return [
                             'success' => false,
                             'message' => "❌ KARTU TIDAK AKTIF: {$inactiveStudent->full_name} ({$inactiveStudent->nis}). Hubungi admin."
@@ -144,7 +144,7 @@ class AttendanceService
 
             // Validate geofencing (for mobile NFC)
             $geofenceValid = true;
-            $locationId = null;
+            $locationId = $data['location_id'] ?? null;
             $distance = null;
 
             if (isset($data['method']) && $data['method'] === 'nfc_mobile') {
@@ -222,6 +222,7 @@ class AttendanceService
                         'check_in_photo' => $data['photo'] ?? null,
                         'status' => $status,
                         'late_minutes' => $lateMinutes,
+                        'percentage' => Attendance::percentageForStatus($status),
                     ]
                 );
                 Log::info("✅ Attendance saved: ID {$attendance->id}");
@@ -381,7 +382,7 @@ class AttendanceService
             }
 
             // Validate geofencing (for mobile NFC)
-            $locationId = null;
+            $locationId = $data['location_id'] ?? null;
             $distance = null;
 
             if (isset($data['method']) && $data['method'] === 'nfc_mobile') {
@@ -503,9 +504,7 @@ class AttendanceService
     protected function validateStudent(array $data): ?Student
     {
         if (isset($data['card_uid'])) {
-            return Student::where('card_uid', $data['card_uid'])
-                ->where('is_active', true)
-                ->first();
+            return $this->findStudentByCardUid($data['card_uid']);
         }
 
         if (isset($data['student_id'])) {
@@ -515,6 +514,20 @@ class AttendanceService
         }
 
         return null;
+    }
+
+    protected function findStudentByCardUid(string $cardUid, bool $activeOnly = true): ?Student
+    {
+        $possibleFormats = $this->normalizeCardUid($cardUid);
+
+        return Student::query()
+            ->when($activeOnly, fn ($query) => $query->where('is_active', true))
+            ->where(function ($query) use ($possibleFormats) {
+                foreach ($possibleFormats as $format) {
+                    $query->orWhere('card_uid', $format);
+                }
+            })
+            ->first();
     }
 
     /**
@@ -931,9 +944,11 @@ class AttendanceService
      * @param string $method (rfid_physical, nfc_mobile, etc)
      * @return array
      */
-    public function processTap(string $cardUid, string $method = 'rfid'): array
+    public function processTap(string $cardUid, string $method = 'rfid_physical'): array
     {
         try {
+            $method = Attendance::normalizeMethod($method) ?? 'rfid_physical';
+
             Log::info('Processing card tap', [
                 'original_uid' => $cardUid,
                 'method' => $method,
@@ -980,39 +995,66 @@ class AttendanceService
                 ->whereDate('date', $today)
                 ->first();
 
-            // Get auto checkout time setting (default 12:00)
-            $autoCheckoutTime = AttendanceSetting::getValue('auto_checkout_time', '12:00:00');
             $currentTime = now();
+            $todayEvent = $this->getTodayEvent();
 
-            // Parse auto checkout time
             try {
-                $autoCheckoutThreshold = Carbon::parse($autoCheckoutTime);
-                $isCheckOutPeriod = $currentTime->gte($autoCheckoutThreshold);
+                $usingCustomTimes = $todayEvent && $todayEvent->use_custom_times;
+
+                $checkInEndValue = $usingCustomTimes
+                    ? ($todayEvent->custom_check_in_end ?? AttendanceSetting::getValue('check_in_end', '11:00:00'))
+                    : AttendanceSetting::getValue('check_in_end', '11:00:00');
+
+                $checkOutStartValue = $usingCustomTimes
+                    ? ($todayEvent->custom_check_out_start ?? AttendanceSetting::getValue('check_out_start', '14:00:00'))
+                    : AttendanceSetting::getValue('check_out_start', '14:00:00');
+
+                $autoCheckoutValue = AttendanceSetting::getValue('auto_checkout_time', '12:00:00');
+
+                $checkInEnd = Carbon::parse($checkInEndValue);
+                $checkOutStart = Carbon::parse($checkOutStartValue);
+                $autoCheckoutThreshold = Carbon::parse($autoCheckoutValue);
+
+                // Jika ada event kalender dengan jam khusus, hormati jam event.
+                // Jika tidak, gunakan proteksi agar mode auto checkout tidak aktif
+                // lebih awal dari pembukaan check-out normal.
+                $checkoutSwitchTime = $usingCustomTimes
+                    ? $checkOutStart
+                    : ($autoCheckoutThreshold->gt($checkOutStart) ? $autoCheckoutThreshold : $checkOutStart);
             } catch (\Exception $e) {
-                // Fallback to 12:00 if parsing fails
+                $checkInEnd = Carbon::parse('11:00:00');
+                $checkOutStart = Carbon::parse('14:00:00');
                 $autoCheckoutThreshold = Carbon::parse('12:00:00');
-                $isCheckOutPeriod = $currentTime->gte($autoCheckoutThreshold);
+                $checkoutSwitchTime = Carbon::parse('14:00:00');
             }
+
+            $isCheckInWindowClosed = $currentTime->gt($checkInEnd);
+            $isCheckOutPeriod = $currentTime->gte($checkoutSwitchTime);
 
             Log::info('Time period check', [
                 'current_time' => $currentTime->format('H:i:s'),
-                'auto_checkout_time' => $autoCheckoutTime,
+                'check_in_end' => $checkInEnd->format('H:i:s'),
+                'check_out_start' => $checkOutStart->format('H:i:s'),
+                'auto_checkout_time' => $autoCheckoutThreshold->format('H:i:s'),
+                'checkout_switch_time' => $checkoutSwitchTime->format('H:i:s'),
+                'is_checkin_window_closed' => $isCheckInWindowClosed,
                 'is_checkout_period' => $isCheckOutPeriod
             ]);
 
             // Determine action based on time and attendance status
             if (!$attendance || !$attendance->check_in_time) {
                 // No check-in record exists
-                if ($isCheckOutPeriod) {
-                    // After 12:00, should be checkout but no check-in
-                    Log::warning('Attempted check-out without check-in', [
-                        'student' => $student->full_name,
-                        'time' => $currentTime->format('H:i')
+                if (!$isCheckInWindowClosed) {
+                    return $this->checkIn([
+                        'card_uid' => $student->card_uid,
+                        'method' => $method,
                     ]);
+                }
 
+                if ($currentTime->lt($checkoutSwitchTime)) {
                     return [
                         'success' => false,
-                        'message' => "⚠️ BELUM CHECK-IN: Anda belum melakukan absen masuk hari ini. Waktu sekarang sudah melewati jam {$autoCheckoutTime} (periode check-out). Silakan hubungi wali kelas untuk absensi manual.",
+                        'message' => "⏰ CHECK-IN SUDAH DITUTUP: Batas check-in berakhir pukul {$checkInEnd->format('H:i')}. Check-out baru dibuka pukul {$checkoutSwitchTime->format('H:i')}. Silakan hubungi wali kelas untuk absensi manual.",
                         'type' => 'warning',
                         'data' => [
                             'student' => [
@@ -1024,27 +1066,41 @@ class AttendanceService
                             ]
                         ]
                     ];
-                } else {
-                    // Before 12:00, perform check-in
-                    return $this->checkIn([
-                        'card_uid' => $student->card_uid,
-                        'method' => $method,
+                }
+
+                if ($isCheckOutPeriod) {
+                    Log::warning('Attempted check-out without check-in', [
+                        'student' => $student->full_name,
+                        'time' => $currentTime->format('H:i')
                     ]);
+
+                    return [
+                        'success' => false,
+                        'message' => "⚠️ BELUM CHECK-IN: Anda belum melakukan absen masuk hari ini. Periode check-out dimulai pukul {$checkoutSwitchTime->format('H:i')}, tetapi tanpa check-in absensi tidak bisa dilanjutkan. Silakan hubungi wali kelas untuk absensi manual.",
+                        'type' => 'warning',
+                        'data' => [
+                            'student' => [
+                                'id' => $student->id,
+                                'name' => $student->full_name,
+                                'nis' => $student->nis,
+                                'class' => $student->class->name ?? '-',
+                                'photo' => $student->photo,
+                            ]
+                        ]
+                    ];
                 }
             } elseif (!$attendance->check_out_time) {
                 // Has check-in, no check-out yet
                 if ($isCheckOutPeriod) {
-                    // After 12:00, should be checkout
                     return $this->checkOut([
                         'card_uid' => $student->card_uid,
                         'method' => $method,
                     ]);
                 } else {
-                    // Before 12:00, already checked in
                     return [
                         'success' => false,
                         'type' => 'info',
-                        'message' => "⚠️ SUDAH CHECK-IN: Anda sudah absen masuk pada {$attendance->check_in_time->format('H:i')}. Check-out bisa dilakukan setelah pukul {$autoCheckoutTime}.",
+                        'message' => "⚠️ SUDAH CHECK-IN: Anda sudah absen masuk pada {$attendance->check_in_time->format('H:i')}. Check-out bisa dilakukan setelah pukul {$checkoutSwitchTime->format('H:i')}.",
                         'data' => [
                             'student' => [
                                 'id' => $student->id,
@@ -1183,18 +1239,6 @@ class AttendanceService
      */
     protected function calculatePercentage(Attendance $attendance): float
     {
-        // Weighted percentage based on status
-        $percentages = [
-            'hadir' => 100,
-            'terlambat' => 75,
-            'izin' => 50,
-            'sakit' => 50,
-            'dispensasi' => 75,
-            'pulang_cepat' => 75,
-            'alpha' => 0,
-            'bolos' => 0,
-        ];
-
-        return $percentages[$attendance->status] ?? 0;
+        return Attendance::percentageForStatus($attendance->status);
     }
 }

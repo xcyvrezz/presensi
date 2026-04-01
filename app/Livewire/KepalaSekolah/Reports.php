@@ -2,25 +2,25 @@
 
 namespace App\Livewire\KepalaSekolah;
 
-use App\Models\Student;
+use App\Exports\AttendanceReportExport;
+use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\Department;
-use App\Models\Attendance;
 use App\Models\Semester;
-use App\Exports\AttendanceReportExport;
-use Livewire\Component;
+use App\Models\Student;
+use App\Services\AttendanceSummaryService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
 
 #[Layout('layouts.kepala-sekolah')]
 #[Title('Laporan Kehadiran')]
 class Reports extends Component
 {
-    public $reportType = 'semester'; // monthly, semester, custom
+    public $reportType = 'semester';
     public $selectedMonth;
     public $selectedYear;
     public $selectedSemesterId;
@@ -31,17 +31,14 @@ class Reports extends Component
 
     public function mount()
     {
-        // Get active semester
         $activeSemester = Semester::where('is_active', true)->first();
 
         if ($activeSemester) {
-            // Use active semester as default
             $this->selectedSemesterId = $activeSemester->id;
             $this->startDate = Carbon::parse($activeSemester->start_date)->format('Y-m-d');
             $this->endDate = Carbon::parse($activeSemester->end_date)->format('Y-m-d');
             $this->selectedYear = Carbon::parse($activeSemester->start_date)->year;
         } else {
-            // Fallback to current month if no active semester
             $this->selectedMonth = Carbon::now()->month;
             $this->selectedYear = Carbon::now()->year;
             $this->startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
@@ -56,13 +53,7 @@ class Reports extends Component
             $this->startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfMonth()->format('Y-m-d');
             $this->endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth()->format('Y-m-d');
         } elseif ($this->reportType === 'semester') {
-            // Use active semester or first available semester
-            if ($this->selectedSemesterId) {
-                $semester = Semester::find($this->selectedSemesterId);
-            } else {
-                $semester = Semester::where('is_active', true)->first() ?? Semester::latest()->first();
-            }
-
+            $semester = $this->selectedSemesterId ? Semester::find($this->selectedSemesterId) : (Semester::where('is_active', true)->first() ?? Semester::latest()->first());
             if ($semester) {
                 $this->selectedSemesterId = $semester->id;
                 $this->startDate = Carbon::parse($semester->start_date)->format('Y-m-d');
@@ -118,76 +109,60 @@ class Reports extends Component
     {
         $filename = 'Laporan_Kehadiran_' . Carbon::parse($this->startDate)->format('Y-m-d') . '_to_' . Carbon::parse($this->endDate)->format('Y-m-d') . '.xlsx';
 
-        return Excel::download(
-            new AttendanceReportExport($this->startDate, $this->endDate, $this->selectedDepartment, $this->selectedClass),
-            $filename
-        );
+        return Excel::download(new AttendanceReportExport($this->startDate, $this->endDate, $this->selectedDepartment, $this->selectedClass), $filename);
     }
 
     private function getReportData()
     {
+        $summaryService = app(AttendanceSummaryService::class);
         $startDate = Carbon::parse($this->startDate)->startOfDay();
         $endDate = Carbon::parse($this->endDate)->endOfDay();
 
-        // Base query for students
         $studentsQuery = Student::where('is_active', true);
-
         if ($this->selectedDepartment !== 'all') {
-            $studentsQuery->whereHas('class', function ($q) {
-                $q->where('department_id', $this->selectedDepartment);
-            });
+            $studentsQuery->whereHas('class', fn ($q) => $q->where('department_id', $this->selectedDepartment));
         }
-
         if ($this->selectedClass !== 'all') {
             $studentsQuery->where('class_id', $this->selectedClass);
         }
 
         $students = $studentsQuery->with(['class.department'])->get();
+        $studentIds = $students->pluck('id');
 
-        // Get attendances for the period - PERBAIKAN: gunakan date field atau whereDate
-        $attendances = Attendance::whereBetween('date', [
-                $startDate->format('Y-m-d'),
-                $endDate->format('Y-m-d')
-            ])
-            ->whereIn('student_id', $students->pluck('id'))
+        $attendances = Attendance::whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereIn('student_id', $studentIds)
             ->get();
 
-        // Calculate statistics
+        $departmentId = $this->selectedDepartment !== 'all' ? (int) $this->selectedDepartment : null;
+        $classId = $this->selectedClass !== 'all' ? (int) $this->selectedClass : null;
+        $workingDays = $summaryService->getEffectiveDates($startDate, $endDate, $departmentId, $classId)->count();
         $totalStudents = $students->count();
-        $workingDays = $this->getWorkingDaysBetween($startDate, $endDate);
         $expectedAttendances = $totalStudents * $workingDays;
+        $totalPresent = $attendances->whereIn('status', ['hadir', 'terlambat', 'dispensasi'])->count();
 
         $statistics = [
             'total_students' => $totalStudents,
             'working_days' => $workingDays,
             'expected_attendances' => $expectedAttendances,
-            'total_present' => $attendances->whereIn('status', ['hadir', 'terlambat'])->count(),
+            'total_present' => $totalPresent,
             'total_hadir' => $attendances->where('status', 'hadir')->count(),
             'total_terlambat' => $attendances->where('status', 'terlambat')->count(),
             'total_izin' => $attendances->where('status', 'izin')->count(),
             'total_sakit' => $attendances->where('status', 'sakit')->count(),
             'total_alpha' => $attendances->where('status', 'alpha')->count(),
             'total_dispensasi' => $attendances->where('status', 'dispensasi')->count(),
+            'attendance_percentage' => $expectedAttendances > 0 ? round(($totalPresent / $expectedAttendances) * 100, 2) : 0,
         ];
 
-        $statistics['attendance_percentage'] = $expectedAttendances > 0
-            ? round(($statistics['total_present'] / $expectedAttendances) * 100, 2)
-            : 0;
-
-        // Department breakdown
         $departmentStats = [];
-        $departments = Department::all();
-
-        foreach ($departments as $dept) {
-            $deptStudents = $students->filter(function ($student) use ($dept) {
-                return $student->class && $student->class->department_id == $dept->id;
-            });
-
-            if ($deptStudents->count() == 0) continue;
+        foreach (Department::all() as $dept) {
+            $deptStudents = $students->filter(fn ($student) => $student->class && $student->class->department_id == $dept->id);
+            if ($deptStudents->isEmpty()) continue;
 
             $deptAttendances = $attendances->whereIn('student_id', $deptStudents->pluck('id'));
-            $deptExpected = $deptStudents->count() * $workingDays;
-            $deptPresent = $deptAttendances->whereIn('status', ['hadir', 'terlambat'])->count();
+            $deptWorkingDays = $summaryService->getEffectiveDates($startDate, $endDate, $dept->id)->count();
+            $deptExpected = $deptStudents->count() * $deptWorkingDays;
+            $deptPresent = $deptAttendances->whereIn('status', ['hadir', 'terlambat', 'dispensasi'])->count();
 
             $departmentStats[] = [
                 'name' => $dept->name,
@@ -204,18 +179,15 @@ class Reports extends Component
             ];
         }
 
-        // Class breakdown
         $classStats = [];
-        $classes = Classes::all();
-
-        foreach ($classes as $class) {
+        foreach (Classes::all() as $class) {
             $classStudents = $students->where('class_id', $class->id);
-
-            if ($classStudents->count() == 0) continue;
+            if ($classStudents->isEmpty()) continue;
 
             $classAttendances = $attendances->whereIn('student_id', $classStudents->pluck('id'));
-            $classExpected = $classStudents->count() * $workingDays;
-            $classPresent = $classAttendances->whereIn('status', ['hadir', 'terlambat'])->count();
+            $classWorkingDays = $summaryService->getEffectiveDates($startDate, $endDate, $class->department_id, $class->id)->count();
+            $classExpected = $classStudents->count() * $classWorkingDays;
+            $classPresent = $classAttendances->whereIn('status', ['hadir', 'terlambat', 'dispensasi'])->count();
 
             $classStats[] = [
                 'name' => $class->name,
@@ -239,26 +211,6 @@ class Reports extends Component
             'start_date' => $startDate,
             'end_date' => $endDate,
         ];
-    }
-
-    private function getWorkingDaysBetween($startDate, $endDate)
-    {
-        $start = Carbon::parse($startDate);
-        $end = Carbon::parse($endDate);
-        $workingDays = 0;
-
-        // Get all holiday dates in this range
-        $holidayDates = \App\Models\AcademicCalendar::getHolidayDates($start, $end);
-
-        while ($start <= $end) {
-            // Count weekdays only and exclude holidays
-            if ($start->isWeekday() && !in_array($start->format('Y-m-d'), $holidayDates)) {
-                $workingDays++;
-            }
-            $start->addDay();
-        }
-
-        return $workingDays;
     }
 
     public function render()

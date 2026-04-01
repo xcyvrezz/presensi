@@ -888,7 +888,6 @@
                                 <option value="alpha">Alpha</option>
                                 <option value="bolos">Bolos</option>
                                 <option value="pulang_cepat">Pulang Cepat</option>
-                                <option value="lupa_check_out">Lupa Check Out</option>
                             </select>
                             @error('editStatus')
                                 <span class="text-red-600 text-xs mt-1 flex items-center gap-1">

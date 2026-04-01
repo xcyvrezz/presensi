@@ -292,7 +292,7 @@
     </div>
 
     <div class="highlight-box">
-        <p><strong>Catatan:</strong> Rekap bulanan menghitung hari efektif dengan mengecualikan Sabtu, Minggu, dan hari libur. Persentase = <strong>(Total Kehadiran / Hari Efektif) × 100%</strong></p>
+        <p><strong>Catatan:</strong> Rekap bulanan menghitung hari efektif dengan mengecualikan Sabtu, Minggu, dan event kalender yang ditandai sebagai libur (`is_holiday = true`). Event non-libur seperti UAS atau kegiatan sekolah tetap dihitung. Persentase = <strong>(Total Kehadiran / Hari Efektif) × 100%</strong></p>
     </div>
 
     <table class="data-table">
@@ -355,24 +355,27 @@
     <div class="legend">
         <div class="legend-title">Keterangan Warna:</div>
         <div class="legend-items">
-            <span class="legend-item"><span class="hadir">●</span> Hadir</span>
-            <span class="legend-item"><span class="terlambat">●</span> Terlambat</span>
-            <span class="legend-item"><span class="izin">●</span> Izin</span>
-            <span class="legend-item"><span class="sakit">●</span> Sakit</span>
-            <span class="legend-item"><span class="dispensasi">●</span> Dispensasi</span>
-            <span class="legend-item"><span class="bolos">●</span> Bolos</span>
-            <span class="legend-item"><span class="alpha">●</span> Alpha</span>
-            <span class="legend-item"><span class="tidak-checkout">●</span> Tidak Checkout</span>
+            <span class="legend-item"><span class="hadir">&bull;</span> Hadir</span>
+            <span class="legend-item"><span class="terlambat">&bull;</span> Terlambat</span>
+            <span class="legend-item"><span class="izin">&bull;</span> Izin</span>
+            <span class="legend-item"><span class="sakit">&bull;</span> Sakit</span>
+            <span class="legend-item"><span class="dispensasi">&bull;</span> Dispensasi</span>
+            <span class="legend-item"><span class="bolos">&bull;</span> Bolos</span>
+            <span class="legend-item"><span class="alpha">&bull;</span> Alpha</span>
+            <span class="legend-item"><span class="tidak-checkout">&bull;</span> Tidak Checkout</span>
             <span class="legend-item">|</span>
-            <span class="legend-item"><span class="percent-excellent">●</span> ≥90% (Sangat Baik)</span>
-            <span class="legend-item"><span class="percent-good">●</span> 75-89% (Baik)</span>
-            <span class="legend-item"><span class="percent-poor">●</span> <75% (Kurang)</span>
+            <span class="legend-item"><span class="percent-excellent">&bull;</span> &ge;90% (Sangat Baik)</span>
+            <span class="legend-item"><span class="percent-good">&bull;</span> 75-89% (Baik)</span>
+            <span class="legend-item"><span class="percent-poor">&bull;</span> <75% (Kurang)</span>
         </div>
     </div>
 
     <div class="footer">
         <p>Dokumen ini digenerate secara otomatis oleh Sistem Absensi</p>
-        <p style="margin-top: 5px;">© {{ $year }} - Semua data bersifat rahasia dan hanya untuk keperluan administrasi sekolah</p>
+        <p style="margin-top: 5px;">&copy; {{ $year }} - Semua data bersifat rahasia dan hanya untuk keperluan administrasi sekolah</p>
     </div>
 </body>
 </html>
+
+
+
