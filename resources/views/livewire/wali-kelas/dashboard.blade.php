@@ -23,7 +23,7 @@
                 <div>
                     <h2 class="text-2xl font-bold">{{ $class->name }}</h2>
                     <p class="text-blue-100 mt-1">{{ $class->department->name }} ({{ $class->department->code }})</p>
-                    <p class="text-blue-100 mt-1">Tingkat {{ $class->grade }} • Tahun Ajaran {{ $class->academic_year }}</p>
+                    <p class="text-blue-100 mt-1">Tingkat {{ $class->grade }} &bull; Tahun Ajaran {{ $class->academic_year }}</p>
                 </div>
                 <div class="text-right">
                     <div class="text-4xl font-bold">{{ $totalStudents }}</div>
@@ -32,8 +32,8 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-            <div class="xl:col-span-2 bg-white border border-slate-200 rounded-xl p-6">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8 items-stretch">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 h-full">
                 <div class="flex items-start justify-between gap-4 mb-5">
                     <div>
                         <p class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Ringkasan periode aktif</p>
@@ -55,7 +55,7 @@
                 <p class="text-xs text-slate-500 mt-2">Persentase kelas dihitung dari awal semester aktif sampai hari ini, hanya Senin-Jumat, dan mengecualikan hari libur kalender yang berlaku untuk kelas ini.</p>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-xl p-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 h-full">
                 <h3 class="text-base font-bold text-slate-900 mb-4">Snapshot Hari Ini</h3>
                 <div class="space-y-4">
                     <div class="flex justify-between"><span class="text-slate-600">Hadir hari ini</span><strong>{{ $presentToday }}</strong></div>

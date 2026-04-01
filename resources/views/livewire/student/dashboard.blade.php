@@ -69,8 +69,8 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-5">
-            <div class="xl:col-span-2 bg-white border border-slate-200 rounded-xl p-6">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5 items-stretch">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 h-full">
                 <div class="flex items-start justify-between gap-4 mb-5">
                     <div>
                         <p class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Ringkasan periode aktif</p>
@@ -108,7 +108,7 @@
                 </div>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-xl p-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 h-full">
                 <h3 class="text-base font-bold text-slate-900 mb-4">Komposisi Status</h3>
                 <div class="space-y-3 text-sm">
                     <div class="flex justify-between"><span>Hadir</span><strong>{{ $totalPresent }}</strong></div>

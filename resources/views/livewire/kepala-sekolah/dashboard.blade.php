@@ -13,14 +13,14 @@
     @endif
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
-        <div class="bg-white border border-slate-200 rounded-xl p-6"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Siswa Aktif</p><p class="text-4xl font-bold text-slate-900 mt-3">{{ $overallStats['total_students'] }}</p></div>
-        <div class="bg-white border border-slate-200 rounded-xl p-6"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hari Efektif Periode</p><p class="text-4xl font-bold text-slate-900 mt-3">{{ $overallStats['period_effective_days'] }}</p><p class="text-sm text-slate-500 mt-2">{{ $period['label'] }}</p></div>
-        <div class="bg-white border border-slate-200 rounded-xl p-6"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kehadiran Periode</p><p class="text-4xl font-bold text-blue-600 mt-3">{{ $overallStats['period_attendance_percentage'] }}%</p><p class="text-sm text-slate-500 mt-2">{{ $overallStats['period_present'] }} / {{ $overallStats['period_expected'] }}</p></div>
-        <div class="bg-white border border-slate-200 rounded-xl p-6"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hadir Hari Ini</p><p class="text-4xl font-bold text-slate-900 mt-3">{{ $isHoliday ? 'LIBUR' : $overallStats['today_present'] }}</p><p class="text-sm text-slate-500 mt-2">{{ $isHoliday ? 'Tidak ada absensi' : $overallStats['attendance_percentage'].'% hari ini' }}</p></div>
+        <div class="bg-white border border-slate-200 rounded-xl p-6 h-full"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Siswa Aktif</p><p class="text-4xl font-bold text-slate-900 mt-3">{{ $overallStats['total_students'] }}</p></div>
+        <div class="bg-white border border-slate-200 rounded-xl p-6 h-full"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hari Efektif Periode</p><p class="text-4xl font-bold text-slate-900 mt-3">{{ $overallStats['period_effective_days'] }}</p><p class="text-sm text-slate-500 mt-2">{{ $period['label'] }}</p></div>
+        <div class="bg-white border border-slate-200 rounded-xl p-6 h-full"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kehadiran Periode</p><p class="text-4xl font-bold text-blue-600 mt-3">{{ $overallStats['period_attendance_percentage'] }}%</p><p class="text-sm text-slate-500 mt-2">{{ $overallStats['period_present'] }} / {{ $overallStats['period_expected'] }}</p></div>
+        <div class="bg-white border border-slate-200 rounded-xl p-6 h-full"><p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hadir Hari Ini</p><p class="text-4xl font-bold text-slate-900 mt-3">{{ $isHoliday ? 'LIBUR' : $overallStats['today_present'] }}</p><p class="text-sm text-slate-500 mt-2">{{ $isHoliday ? 'Tidak ada absensi' : $overallStats['attendance_percentage'].'% hari ini' }}</p></div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-        <div class="xl:col-span-2 bg-white border border-slate-200 rounded-xl p-6">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8 items-stretch">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 h-full">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-slate-900">Perbandingan Kehadiran per Jurusan</h3>
                 <span class="text-xs text-slate-500">Periode aktif</span>
@@ -31,7 +31,7 @@
                         <div class="flex items-center justify-between mb-2">
                             <div>
                                 <p class="text-sm font-semibold text-slate-900">{{ $dept['name'] }}</p>
-                                <p class="text-xs text-slate-500">{{ $dept['total_students'] }} siswa • {{ $dept['present'] }}/{{ $dept['expected_records'] }}</p>
+                                <p class="text-xs text-slate-500">{{ $dept['total_students'] }} siswa &bull; {{ $dept['present'] }}/{{ $dept['expected_records'] }}</p>
                             </div>
                             <p class="text-lg font-bold text-blue-600">{{ $dept['percentage'] }}%</p>
                         </div>
@@ -41,7 +41,7 @@
             </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl p-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 h-full">
             <h3 class="text-lg font-bold text-slate-900 mb-6">Top 5 Kelas Periode Aktif</h3>
             <div class="space-y-3">
                 @foreach($topClasses as $index => $class)
@@ -77,7 +77,7 @@
         </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <div class="bg-white border border-slate-200 rounded-xl p-6 h-full">
         <h3 class="text-lg font-bold text-slate-900 mb-6">Kehadiran Hari Ini per Jam</h3>
         @php $maxCount = max(array_column($todayAttendance, 'count')); $maxCount = $maxCount > 0 ? $maxCount : 1; @endphp
         <div class="space-y-2">
