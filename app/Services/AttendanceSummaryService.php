@@ -8,6 +8,7 @@ use App\Models\Semester;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 
 class AttendanceSummaryService
@@ -43,7 +44,7 @@ class AttendanceSummaryService
             'start_date' => $startDate,
             'end_date' => $endDate,
             'label' => $semester
-                ? $semester->name . ' ('. $startDate->translatedFormat('d M Y') .' - '. $endDate->translatedFormat('d M Y') .')'
+                ? $semester->name . ' (' . $startDate->translatedFormat('d M Y') . ' - ' . $endDate->translatedFormat('d M Y') . ')'
                 : 'Periode berjalan',
         ];
     }
@@ -54,7 +55,7 @@ class AttendanceSummaryService
             return collect();
         }
 
-                        $excludedDates = AcademicCalendar::getHolidayDates($startDate, $endDate, $departmentId, $classId);
+        $excludedDates = AcademicCalendar::getHolidayDates($startDate, $endDate, $departmentId, $classId);
         $excludedLookup = array_flip($excludedDates);
 
         return collect(CarbonPeriod::create($startDate, $endDate))
@@ -74,7 +75,7 @@ class AttendanceSummaryService
         return $this->buildSummary($attendances, 1, $effectiveDates->count(), $effectiveDates);
     }
 
-    public function getAggregateSummary(Builder $studentQuery, Carbon $startDate, Carbon $endDate, ?int $departmentId = null, ?int $classId = null): array
+    public function getAggregateSummary(Builder|Relation $studentQuery, Carbon $startDate, Carbon $endDate, ?int $departmentId = null, ?int $classId = null): array
     {
         $students = (clone $studentQuery)->select('id')->get();
         $studentIds = $students->pluck('id');
@@ -118,5 +119,3 @@ class AttendanceSummaryService
         ];
     }
 }
-
-
